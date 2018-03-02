@@ -26,3 +26,12 @@ Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mo
 (def-package! org-clubhouse)
 #+END_SRC
 
+
+* Setup
+
+Once setup, you'll need to set two global config vars.
+
+#+BEGIN_SRC emacs-lisp
+(setq org-clubhouse-auth-token "<your-token>"
+      org-clubhouse-team-name "<your-team-name>")
+#+END_SRC
