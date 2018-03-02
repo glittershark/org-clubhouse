@@ -111,7 +111,7 @@ If unset all projects will be synchronized")
   "Collects the headline at point or the headlines in a region. Returns a list."
   (setq test-headlines
   (if (and beg end)
-      (get-headlines-in-region beg end)
+      (org-clubhouse-get-headlines-in-region beg end)
       (list (org-element-find-headline)))))
 
 
