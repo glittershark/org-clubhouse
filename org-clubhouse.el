@@ -89,6 +89,45 @@ If unset all projects will be synchronized")
 
  )
 
+
+(defun org-clubhouse-collect-headlines (beg end)
+  "Collects the headline at point or the headlines in a region. Returns a list."
+  (setq test-headlines
+  (if (and beg end)
+      (get-headlines-in-region beg end)
+      (list (org-element-find-headline)))))
+
+
+(defun org-clubhouse-get-headlines-in-region (beg end)
+  "Collects the headlines from BEG to END"
+  (save-excursion
+    ;; This beg/end clean up pulled from `reverse-region`.
+    ;; it expands the region to include the full lines from the selected region.
+
+    ;; put beg at the start of a line and end and the end of one --
+    ;; the largest possible region which fits this criteria
+    (goto-char beg)
+    (or (bolp) (forward-line 1))
+    (setq beg (point))
+    (goto-char end)
+    ;; the test for bolp is for those times when end is on an empty line;
+    ;; it is probably not the case that the line should be included in the
+    ;; reversal; it isn't difficult to add it afterward.
+    (or (and (eolp) (not (bolp))) (progn (forward-line -1) (end-of-line)))
+    (setq end (point-marker))
+
+    ;; move to the beginning
+    (goto-char beg)
+    ;; walk by line until past end
+    (let ((headlines '())
+          (before-end 't))
+      (while before-end
+        (add-to-list 'headlines (org-element-find-headline))
+        (let ((before (point)))
+          (org-forward-heading-same-level 1)
+          (setq before-end (and (not (eq before (point))) (< (point) end)))))
+      headlines)))
+
 ;;;
 ;;; Org-element interaction
 ;;;
@@ -337,46 +376,58 @@ If unset all projects will be synchronized")
                (message "%d" epic-id)
                (funcall cb epic-id)))))
 
-(defun org-clubhouse-populate-created-story (story)
-  (let ((elt        (org-element-find-headline))
+(defun org-clubhouse-populate-created-story (elt story)
+  (let ((elt-start  (plist-get elt :begin))
         (story-id   (alist-get 'id story))
         (epic-id    (alist-get 'epic_id story))
         (project-id (alist-get 'project_id story)))
 
-    (org-set-property "clubhouse-id"
-                      (org-make-link-string
-                       (org-clubhouse-link-to-story story-id)
-                       (number-to-string story-id)))
+    (save-excursion
+      (goto-char elt-start)
 
-    (org-set-property "clubhouse-epic"
-                      (org-make-link-string
-                       (org-clubhouse-link-to-epic epic-id)
-                       (alist-get epic-id (org-clubhouse-epics))))
+      (org-set-property "clubhouse-id"
+                        (org-make-link-string
+                         (org-clubhouse-link-to-story story-id)
+                         (number-to-string story-id)))
 
-    (org-set-property "clubhouse-project"
-                      (org-make-link-string
-                       (org-clubhouse-link-to-project project-id)
-                       (alist-get project-id (org-clubhouse-projects))))
+      (org-set-property "clubhouse-epic"
+                        (org-make-link-string
+                         (org-clubhouse-link-to-epic epic-id)
+                         (alist-get epic-id (org-clubhouse-epics))))
 
-    (org-todo "TODO")))
+      (org-set-property "clubhouse-project"
+                        (org-make-link-string
+                         (org-clubhouse-link-to-project project-id)
+                         (alist-get project-id (org-clubhouse-projects))))
 
-(defun org-clubhouse-create-story ()
-  (interactive)
-  ;; (message (org-element-find-headline))
-  (when-let ((elt (org-element-find-headline))
-             (title (plist-get elt :title)))
-    (if (plist-get elt :CLUBHOUSE-ID)
-        (message "This headline is already a clubhouse story!")
-      (org-clubhouse-prompt-for-project
-       (lambda (project-id)
-         (when project-id
-           (org-clubhouse-prompt-for-epic
-            (lambda (epic-id)
-              (let* ((story (org-clubhouse-create-story-internal
-                             title
-                             :project-id project-id
-                             :epic-id epic-id)))
-                (org-clubhouse-populate-created-story story))))))))))
+      (org-todo "TODO"))))
+
+(defun org-clubhouse-create-story (&optional beg end)
+  "Creates a clubhouse story using selected headlines.
+
+Will pull the title from the headline at point,
+or create cards for all the headlines in the selected region.
+
+All stories are added to the same project and epic, as selected via two prompts.
+If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
+  (interactive
+    (if (use-region-p)
+      (list (region-beginning) (region-end))))
+
+  (let* ((elts     (org-clubhouse-collect-headlines beg end))
+         (new-elts (-remove (lambda (elt) (plist-get elt :CLUBHOUSE-ID)) elts)))
+    (org-clubhouse-prompt-for-project
+     (lambda (project-id)
+       (when project-id
+         (org-clubhouse-prompt-for-epic
+           (lambda (epic-id)
+             (-map (lambda (elt)
+               (let* ((title (plist-get elt :title))
+                      (story (org-clubhouse-create-story-internal
+                            title
+                            :project-id project-id
+                            :epic-id epic-id)))
+               (org-clubhouse-populate-created-story elt story))) new-elts))))))))
 
 ;;;
 ;;; Story updates
