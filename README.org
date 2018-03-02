@@ -2,4 +2,27 @@
 
 Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the [[https://clubhouse.io/][Clubhouse]] issue tracker
 
+* Install
+
+** [[https://github.com/quelpa/quelpa][Quelpa]]
+
+#+BEGIN_SRC emacs-lisp
+(quelpa! '(org-clubhouse
+           :fetcher github
+           :repo "urbint/org-clubhouse"
+           :files ("*")))
+#+END_SRC
+
+** [[https://github.com/hlissner/doom-emacs/][DOOM Emacs]]
+
+#+BEGIN_SRC emacs-lisp
+;; in packages.el
+(package! org-clubhouse
+  :recipe (:fetcher github
+           :repo "urbint/org-clubhouse"
+           :files ("*")))
+
+;; in config.el
+(def-package! org-clubhouse)
+#+END_SRC
 
