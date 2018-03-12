@@ -79,7 +79,7 @@ If unset all projects will be synchronized")
 (defun ->list (vec) (append vec nil))
 
 (defun reject-archived (item-list)
-  (-filter (lambda (item) (equal :json-false (alist-get 'archived item))) item-list))
+  (-reject (lambda (item) (equal :json-true (alist-get 'archived item))) item-list))
 
 (defun alist->plist (key-map alist)
   (->> key-map
@@ -257,6 +257,11 @@ If unset all projects will be synchronized")
           org-clubhouse-team-name
           epic-id))
 
+(defun org-clubhouse-link-to-milestone (milestone-id)
+  (format "https://app.clubhouse.io/%s/milestone/%d"
+          org-clubhouse-team-name
+          milestone-id))
+
 (defun org-clubhouse-link-to-project (project-id)
   (format "https://app.clubhouse.io/%s/project/%d"
           org-clubhouse-team-name
@@ -312,6 +317,10 @@ If unset all projects will be synchronized")
   "Returns projects as (project-id . name)"
   (org-clubhouse-fetch-as-id-name-pairs "epics"))
 
+(defcache org-clubhouse-milestones
+  "Returns milestone-id . name)"
+  (org-clubhouse-fetch-as-id-name-pairs "milestones"))
+
 (defcache org-clubhouse-workflow-states
   "Returns worflow states as (name . id) pairs"
   (let* ((resp-json (org-clubhouse-request "GET" "workflows"))
@@ -348,21 +357,8 @@ If unset all projects will be synchronized")
                            (status . :status)))))))
 
 ;;;
-;;; Story creation
+;;; Prompting
 ;;;
-
-(cl-defun org-clubhouse-create-story-internal
-    (title &key project-id epic-id)
-  (assert (and (stringp title)
-               (integerp project-id)
-               (or (null epic-id) (integerp epic-id))))
-  (org-clubhouse-request
-   "POST"
-   "stories"
-   (json-encode
-    `((name . ,title)
-      (project_id . ,project-id)
-      (epic_id . ,epic-id)))))
 
 (defun org-clubhouse-prompt-for-project (cb)
   (ivy-read
@@ -392,6 +388,95 @@ If unset all projects will be synchronized")
                          car)))
                (message "%d" epic-id)
                (funcall cb epic-id)))))
+
+(defun org-clubhouse-prompt-for-milestone (cb)
+  (ivy-read
+   "Select a milestone: "
+   (-map #'cdr (org-clubhouse-milestones))
+   :require-match t
+   :history 'org-clubhouse-milestone-history
+   :action (lambda (selected)
+             (let ((milestone-id
+                    (->> (org-clubhouse-milestones)
+                         (-find (lambda (proj)
+                                    (string-equal (cdr proj) selected)))
+                         car)))
+               (message "%d" milestone-id)
+               (funcall cb milestone-id)))))
+
+;;;
+;;; Epic creation
+;;;
+
+(cl-defun org-clubhouse-create-epic-internal
+    (title &key milestone-id)
+  (assert (and (stringp title)
+               (integerp milestone-id)))
+  (org-clubhouse-request
+   "POST"
+   "epics"
+   (json-encode
+    `((name . ,title)
+      (milestone_id . ,milestone-id)))))
+
+(defun org-clubhouse-populate-created-epic (elt epic)
+  (let ((elt-start  (plist-get elt :begin))
+        (epic-id    (alist-get 'id epic))
+        (milestone-id (alist-get 'milestone_id epic)))
+
+    (save-excursion
+      (goto-char elt-start)
+
+      (org-set-property "clubhouse-epic-id"
+                        (org-make-link-string
+                         (org-clubhouse-link-to-epic epic-id)
+                         (number-to-string epic-id)))
+
+      (org-set-property "clubhouse-milestone"
+                        (org-make-link-string
+                         (org-clubhouse-link-to-milestone milestone-id)
+                         (alist-get milestone-id (org-clubhouse-milestones)))))))
+
+(defun org-clubhouse-create-epic (&optional beg end)
+  "Creates a clubhouse epic using selected headlines.
+Will pull the title from the headline at point, or create epics for all the
+headlines in the selected region.
+
+All epics are added to the same milestone, as selected via a prompt.
+If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
+  (interactive
+   (when (use-region-p)
+     (list (region-beginning region-end))))
+
+  (let* ((elts (org-clubhouse-collect-headlines beg end))
+         (elts (-remove (lambda (elt) (plist-get elt :CLUBHOUSE-EPIC-ID)) elts)))
+    (org-clubhouse-prompt-for-milestone
+     (lambda (milestone-id)
+       (when milestone-id
+         (dolist (elt elts)
+           (let* ((title (plist-get elt :title))
+                  (epic  (org-clubhouse-create-epic-internal
+                          title
+                          :milestone-id milestone-id)))
+             (org-clubhouse-populate-created-epic elt epic))
+               elts))))))
+
+;;;
+;;; Story creation
+;;;
+
+(cl-defun org-clubhouse-create-story-internal
+    (title &key project-id epic-id)
+  (assert (and (stringp title)
+               (integerp project-id)
+               (or (null epic-id) (integerp epic-id))))
+  (org-clubhouse-request
+   "POST"
+   "stories"
+   (json-encode
+    `((name . ,title)
+      (project_id . ,project-id)
+      (epic_id . ,epic-id)))))
 
 (defun org-clubhouse-populate-created-story (elt story)
   (let ((elt-start  (plist-get elt :begin))
@@ -428,7 +513,7 @@ or create cards for all the headlines in the selected region.
 All stories are added to the same project and epic, as selected via two prompts.
 If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
   (interactive
-    (if (use-region-p)
+    (when (use-region-p)
       (list (region-beginning) (region-end))))
 
   (let* ((elts     (org-clubhouse-collect-headlines beg end))
@@ -463,7 +548,6 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
   (when-let (clubhouse-id (org-element-clubhouse-id))
     (let* ((elt (org-element-find-headline))
            (todo-keyword (-> elt (plist-get :todo-keyword) (substring-no-properties))))
-      (message todo-keyword)
       (when-let ((clubhouse-workflow-state
                   (alist-get-equal todo-keyword org-clubhouse-state-alist))
                  (workflow-state-id
