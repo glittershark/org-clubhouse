@@ -7,10 +7,9 @@ Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mo
 ** [[https://github.com/quelpa/quelpa][Quelpa]]
 
 #+BEGIN_SRC emacs-lisp
-(quelpa! '(org-clubhouse
-           :fetcher github
-           :repo "urbint/org-clubhouse"
-           :files ("*")))
+(quelpa '(org-clubhouse
+          :fetcher github
+          :repo "urbint/org-clubhouse"))
 #+END_SRC
 
 ** [[https://github.com/hlissner/doom-emacs/][DOOM Emacs]]
