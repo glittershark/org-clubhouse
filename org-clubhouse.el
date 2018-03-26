@@ -68,6 +68,11 @@ If unset all projects will be synchronized")
     ("[X]"    . "Merged")
     ("CLOSED" . "Merged")))
 
+(defvar org-clubhouse-story-types
+  '(("feature" . "Feature")
+    ("bug"     . "Bug")
+    ("chore"   . "Chore")))
+
 ;;;
 ;;; Utilities
 ;;;
@@ -404,6 +409,19 @@ If unset all projects will be synchronized")
                (message "%d" milestone-id)
                (funcall cb milestone-id)))))
 
+(defun org-clubhouse-prompt-for-story-type (cb)
+  (ivy-read
+   "Select a story type: "
+   (-map #'cdr org-clubhouse-story-types)
+   :history 'org-clubhouse-story-history
+   :action (lambda (selected)
+             (let ((story-type
+                    (->> org-clubhouse-story-types
+                         (-find (lambda (proj)
+                                    (string-equal (cdr proj) selected)))
+                         car)))
+               (funcall cb story-type)))))
+
 ;;;
 ;;; Epic creation
 ;;;
@@ -467,7 +485,7 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
 ;;;
 
 (cl-defun org-clubhouse-create-story-internal
-    (title &key project-id epic-id)
+    (title &key project-id epic-id story-type)
   (assert (and (stringp title)
                (integerp project-id)
                (or (null epic-id) (integerp epic-id))))
@@ -478,13 +496,15 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
    (json-encode
     `((name . ,title)
       (project_id . ,project-id)
-      (epic_id . ,epic-id)))))
+      (epic_id . ,epic-id)
+      (story_type . ,story-type)))))
 
 (defun org-clubhouse-populate-created-story (elt story)
   (let ((elt-start  (plist-get elt :begin))
         (story-id   (alist-get 'id story))
         (epic-id    (alist-get 'epic_id story))
-        (project-id (alist-get 'project_id story)))
+        (project-id (alist-get 'project_id story))
+        (story-type (alist-get 'story_type story)))
 
     (save-excursion
       (goto-char elt-start)
@@ -503,6 +523,9 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
                         (org-make-link-string
                          (org-clubhouse-link-to-project project-id)
                          (alist-get project-id (org-clubhouse-projects))))
+
+      (org-set-property "story-type"
+                        (alist-get-equal story-type org-clubhouse-story-types))
 
       (org-todo "TODO"))))
 
@@ -525,13 +548,16 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
        (when project-id
          (org-clubhouse-prompt-for-epic
            (lambda (epic-id)
-             (-map (lambda (elt)
-               (let* ((title (plist-get elt :title))
-                      (story (org-clubhouse-create-story-internal
-                            title
-                            :project-id project-id
-                            :epic-id epic-id)))
-               (org-clubhouse-populate-created-story elt story))) new-elts))))))))
+             (org-clubhouse-prompt-for-story-type
+                (lambda (story-type)
+                    (-map (lambda (elt)
+                        (let* ((title (plist-get elt :title))
+                                (story (org-clubhouse-create-story-internal
+                                        title
+                                        :project-id project-id
+                                        :epic-id epic-id
+                                        :story-type story-type)))
+                        (org-clubhouse-populate-created-story elt story))) new-elts))))))))))
 
 ;;;
 ;;; Story updates
