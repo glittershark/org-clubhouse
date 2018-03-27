@@ -585,6 +585,18 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
 ;;; Story updates
 ;;;
 
+(defun org-clubhouse-update-story-title ()
+  (interactive)
+
+  (when-let (clubhouse-id (org-element-clubhouse-id))
+    (let* ((elt (org-element-find-headline))
+           (title (plist-get elt :title)))
+    (org-clubhouse-update-story-internal
+     clubhouse-id
+     :name title)
+    (message "Successfully updated story title to \"%s\""
+             title))))
+
 (cl-defun org-clubhouse-update-story-internal
     (story-id &rest attrs)
   (assert (and (integerp story-id)
