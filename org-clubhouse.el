@@ -175,13 +175,13 @@ If unset all projects will be synchronized")
        (rx "[[" (one-or-more anything) "]"
            "[" (group (one-or-more digit)) "]]")
        clubhouse-id-link)
-      (string-to-int (match-string 1 clubhouse-id-link)))
+      (string-to-number (match-string 1 clubhouse-id-link)))
      ((string-match-p
        (rx buffer-start
            (one-or-more digit)
            buffer-end)
        clubhouse-id-link)
-      (string-to-int clubhouse-id-link)))))
+      (string-to-number clubhouse-id-link)))))
 
 (comment
  (let ((strn "[[https://app.clubhouse.io/example/story/2330][2330]]"))
@@ -189,7 +189,7 @@ If unset all projects will be synchronized")
     (rx "[[" (one-or-more anything) "]"
         "[" (group (one-or-more digit)) "]]")
     strn)
-   (string-to-int (match-string 1 strn)))
+   (string-to-number (match-string 1 strn)))
 
  )
 
@@ -560,6 +560,19 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
 ;;;
 ;;; Story updates
 ;;;
+
+(defun org-clubhouse-update-story-title ()
+  (interactive)
+
+  (when-let (clubhouse-id (org-element-clubhouse-id))
+    (let* ((elt (org-element-find-headline))
+           (title (plist-get elt :title)))
+    (org-clubhouse-update-story-internal
+     clubhouse-id
+     :name title)
+    (message "Successfully updated story title to \"%s\""
+             title)))
+ )
 
 (cl-defun org-clubhouse-update-story-internal
     (story-id &rest attrs)
