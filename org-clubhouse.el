@@ -198,35 +198,35 @@ If unset all projects will be synchronized")
 
 (defvar org-clubhouse-base-url* "https://api.clubhouse.io/api/v2")
 
-(defun org-clubhouse-auth-url (url)
-  (concat url
-          "?"
-          (url-build-query-string
-           `(("token" ,org-clubhouse-auth-token)))))
+(defun org-clubhouse-auth-url (url &optional params)
+ (concat url
+         "?"
+         (url-build-query-string
+          (cons `("token" ,org-clubhouse-auth-token) params))))
 
 (defun org-clubhouse-baseify-url (url)
-  (if (s-starts-with? org-clubhouse-base-url* url) url
-    (concat org-clubhouse-base-url*
-            (if (s-starts-with? "/" url) url
-              (concat "/" url)))))
+ (if (s-starts-with? org-clubhouse-base-url* url) url
+   (concat org-clubhouse-base-url*
+           (if (s-starts-with? "/" url) url
+             (concat "/" url)))))
 
-(defun org-clubhouse-request (method url &optional data)
-  (message "%s %s %s" method url (prin1-to-string data))
-  (let* ((url-request-method method)
-         (url-request-extra-headers
-          '(("Content-Type" . "application/json")))
-         (url-request-data data)
-         (buf))
+(cl-defun org-clubhouse-request (method url &key data (params '()))
+ (message "%s %s %s" method url (prin1-to-string data))
+ (let* ((url-request-method method)
+        (url-request-extra-headers
+         '(("Content-Type" . "application/json")))
+        (url-request-data data)
+        (buf))
 
-    (setq url (-> url
-                  org-clubhouse-baseify-url
-                  org-clubhouse-auth-url))
+   (setq url (-> url
+                 org-clubhouse-baseify-url
+                 (org-clubhouse-auth-url params)))
 
-    (setq buf (url-retrieve-synchronously url))
+   (setq buf (url-retrieve-synchronously url))
 
-    (with-current-buffer buf
-      (goto-char url-http-end-of-headers)
-      (prog1 (json-read) (kill-buffer)))))
+   (with-current-buffer buf
+     (goto-char url-http-end-of-headers)
+     (prog1 (json-read) (kill-buffer)))))
 
 (cl-defun to-id-name-pairs
     (seq &optional (id-attr 'id) (name-attr 'name))
@@ -415,6 +415,7 @@ If unset all projects will be synchronized")
   (org-clubhouse-request
    "POST"
    "epics"
+   :data
    (json-encode
     `((name . ,title)
       (milestone_id . ,milestone-id)))))
@@ -473,6 +474,7 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
   (org-clubhouse-request
    "POST"
    "stories"
+   :data
    (json-encode
     `((name . ,title)
       (project_id . ,project-id)
@@ -542,13 +544,15 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
   (org-clubhouse-request
    "PUT"
    (format "stories/%d" story-id)
+   :data
    (json-encode attrs)))
 
 (defun org-clubhouse-update-status ()
-  (when-let (clubhouse-id (org-element-clubhouse-id))
+  (interactive)
+  (when-let* ((clubhouse-id (org-element-clubhouse-id)))
     (let* ((elt (org-element-find-headline))
            (todo-keyword (-> elt (plist-get :todo-keyword) (substring-no-properties))))
-      (when-let ((clubhouse-workflow-state
+      (when-let* ((clubhouse-workflow-state
                   (alist-get-equal todo-keyword org-clubhouse-state-alist))
                  (workflow-state-id
                   (alist-get-equal clubhouse-workflow-state (org-clubhouse-workflow-states))))
