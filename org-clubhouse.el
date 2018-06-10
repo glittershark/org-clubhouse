@@ -57,6 +57,12 @@ If unset all projects will be synchronized")
 
 (defvar org-clubhouse-workflow-name "Default")
 
+(defvar org-clubhouse-default-story-type nil
+  "Sets the default story type. If set to 'nil', it will interactively prompt
+the user each and every time a new story is created. If set to 'feature',
+'bug', or 'chore', that value will be used as the default and the user will
+not be prompted")
+
 (defvar org-clubhouse-state-alist
   '(("LATER"  . "Unscheduled")
     ("[ ]"    . "Ready for Development")
@@ -72,6 +78,12 @@ If unset all projects will be synchronized")
   '(("feature" . "Feature")
     ("bug"     . "Bug")
     ("chore"   . "Chore")))
+
+(defvar org-clubhouse-default-story-types
+  '(("feature" . "Feature")
+    ("bug"     . "Bug")
+    ("chore"   . "Chore")
+    ("prompt"  . "**Prompt each time (do not set a default story type)**")))
 
 ;;;
 ;;; Utilities
@@ -111,6 +123,11 @@ If unset all projects will be synchronized")
 
  )
 
+(defun find-match-in-alist (target alist)
+  (->> alist
+       (-find (lambda (key-value)
+                   (string-equal (cdr key-value) target)))
+       car))
 
 (defun org-clubhouse-collect-headlines (beg end)
   "Collects the headline at point or the headlines in a region. Returns a list."
@@ -175,13 +192,13 @@ If unset all projects will be synchronized")
        (rx "[[" (one-or-more anything) "]"
            "[" (group (one-or-more digit)) "]]")
        clubhouse-id-link)
-      (string-to-int (match-string 1 clubhouse-id-link)))
+      (string-to-number (match-string 1 clubhouse-id-link)))
      ((string-match-p
        (rx buffer-start
            (one-or-more digit)
            buffer-end)
        clubhouse-id-link)
-      (string-to-int clubhouse-id-link)))))
+      (string-to-number clubhouse-id-link)))))
 
 (comment
  (let ((strn "[[https://app.clubhouse.io/example/story/2330][2330]]"))
@@ -189,7 +206,7 @@ If unset all projects will be synchronized")
     (rx "[[" (one-or-more anything) "]"
         "[" (group (one-or-more digit)) "]]")
     strn)
-   (string-to-int (match-string 1 strn)))
+   (string-to-number (match-string 1 strn)))
 
  )
 
@@ -373,10 +390,7 @@ If unset all projects will be synchronized")
    :history 'org-clubhouse-project-history
    :action (lambda (selected)
              (let ((project-id
-                    (->> (org-clubhouse-projects)
-                         (-find (lambda (proj)
-                                    (string-equal (cdr proj) selected)))
-                         car)))
+                    (find-match-in-alist selected (org-clubhouse-projects))))
                (message "%d" project-id)
                (funcall cb project-id)))))
 
@@ -387,10 +401,7 @@ If unset all projects will be synchronized")
    :history 'org-clubhouse-epic-history
    :action (lambda (selected)
              (let ((epic-id
-                    (->> (org-clubhouse-epics)
-                         (-find (lambda (proj)
-                                    (string-equal (cdr proj) selected)))
-                         car)))
+                    (find-match-in-alist selected (org-clubhouse-epics))))
                (message "%d" epic-id)
                (funcall cb epic-id)))))
 
@@ -402,10 +413,7 @@ If unset all projects will be synchronized")
    :history 'org-clubhouse-milestone-history
    :action (lambda (selected)
              (let ((milestone-id
-                    (->> (org-clubhouse-milestones)
-                         (-find (lambda (proj)
-                                    (string-equal (cdr proj) selected)))
-                         car)))
+                    (find-match-in-alist selected (org-clubhouse-milestones))))
                (message "%d" milestone-id)
                (funcall cb milestone-id)))))
 
@@ -416,11 +424,21 @@ If unset all projects will be synchronized")
    :history 'org-clubhouse-story-history
    :action (lambda (selected)
              (let ((story-type
-                    (->> org-clubhouse-story-types
-                         (-find (lambda (proj)
-                                    (string-equal (cdr proj) selected)))
-                         car)))
+                    (find-match-in-alist selected org-clubhouse-story-types)))
                (funcall cb story-type)))))
+
+(defun org-clubhouse-prompt-for-default-story-type ()
+  (interactive)
+  (ivy-read
+   "Select a default story type: "
+   (-map #'cdr org-clubhouse-default-story-types)
+   :history 'org-clubhouse-default-story-history
+   :action (lambda (selected)
+             (let ((story-type
+                    (find-match-in-alist selected org-clubhouse-default-story-types)))
+                  (if (string-equal story-type "prompt")
+                      (setq org-clubhouse-default-story-type nil)
+                      (setq org-clubhouse-default-story-type story-type))))))
 
 ;;;
 ;;; Epic creation
@@ -527,6 +545,7 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
 
       (org-todo "TODO"))))
 
+
 (defun org-clubhouse-create-story (&optional beg end)
   "Creates a clubhouse story using selected headlines.
 
@@ -546,16 +565,19 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
        (when project-id
          (org-clubhouse-prompt-for-epic
            (lambda (epic-id)
-             (org-clubhouse-prompt-for-story-type
-                (lambda (story-type)
-                    (-map (lambda (elt)
-                        (let* ((title (plist-get elt :title))
-                                (story (org-clubhouse-create-story-internal
-                                        title
-                                        :project-id project-id
-                                        :epic-id epic-id
-                                        :story-type story-type)))
-                        (org-clubhouse-populate-created-story elt story))) new-elts))))))))))
+             (let ((selected-story-type org-clubhouse-default-story-type))
+               (if (not selected-story-type)
+                 (org-clubhouse-prompt-for-story-type
+                    (lambda (story-type)
+                      set selected-story-type story-type))
+                (-map (lambda (elt)
+                    (let* ((title (plist-get elt :title))
+                            (story (org-clubhouse-create-story-internal
+                                    title
+                                    :project-id project-id
+                                    :epic-id epic-id
+                                    :story-type selected-story-type)))
+                    (org-clubhouse-populate-created-story elt story))) new-elts))))))))))
 
 ;;;
 ;;; Story updates
