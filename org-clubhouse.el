@@ -1,4 +1,5 @@
-;;; org-clubhouse.el --- Simple, unopinionated integration between org-mode and Clubhouse
+;;; org-clubhouse.el --- Simple, unopinionated integration between org-mode and
+;;; Clubhouse
 
 ;;; Copyright (C) 2018 Off Market Data, Inc. DBA Urbint
 ;;; Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -84,6 +85,8 @@ not be prompted")
     ("bug"     . "Bug")
     ("chore"   . "Chore")
     ("prompt"  . "**Prompt each time (do not set a default story type)**")))
+
+(defvar org-clubhouse-default-state "Proposed")
 
 ;;;
 ;;; Utilities
@@ -186,7 +189,7 @@ not be prompted")
       (cadr current-elt))))
 
 (defun org-element-extract-clubhouse-id (elt)
-  (when-let ((clubhouse-id-link (plist-get elt :CLUBHOUSE-ID)))
+  (when-let* ((clubhouse-id-link (plist-get elt :CLUBHOUSE-ID)))
     (cond
      ((string-match
        (rx "[[" (one-or-more anything) "]"
@@ -207,12 +210,29 @@ not be prompted")
         "[" (group (one-or-more digit)) "]]")
     strn)
    (string-to-number (match-string 1 strn)))
-
  )
 
 (defun org-element-clubhouse-id ()
   (org-element-extract-clubhouse-id
    (org-element-find-headline)))
+
+(defun org-element-and-children-at-point ()
+  (let* ((elt (org-element-find-headline))
+         (contents-begin (plist-get elt :contents-begin))
+         (end   (plist-get elt :end))
+         (level (plist-get elt :level))
+         (children '()))
+    (save-excursion
+      (goto-char (+ contents-begin (length (plist-get elt :title))))
+      (while (<= (point) end)
+        (let* ((next-elt (org-element-at-point))
+               (elt-type (car next-elt))
+               (elt      (cadr next-elt)))
+          (when (and (eql 'headline elt-type)
+                     (eql (+ 1 level) (plist-get elt :level)))
+            (push elt children))
+          (goto-char (plist-get elt :end)))))
+    (append elt `(:children ,(reverse children)))))
 
 ;;;
 ;;; API integration
@@ -268,6 +288,10 @@ not be prompted")
         ->list
         reject-archived
         (to-id-name-pairs id-attr name-attr))))
+
+(defun org-clubhouse-get-story
+    (clubhouse-id)
+  (org-clubhouse-request "GET" (format "/stories/%s" clubhouse-id)))
 
 (defun org-clubhouse-link-to-story (story-id)
   (format "https://app.clubhouse.io/%s/story/%d"
@@ -391,7 +415,6 @@ not be prompted")
    :action (lambda (selected)
              (let ((project-id
                     (find-match-in-alist selected (org-clubhouse-projects))))
-               (message "%d" project-id)
                (funcall cb project-id)))))
 
 (defun org-clubhouse-prompt-for-epic (cb)
@@ -402,7 +425,6 @@ not be prompted")
    :action (lambda (selected)
              (let ((epic-id
                     (find-match-in-alist selected (org-clubhouse-epics))))
-               (message "%d" epic-id)
                (funcall cb epic-id)))))
 
 (defun org-clubhouse-prompt-for-milestone (cb)
@@ -414,7 +436,6 @@ not be prompted")
    :action (lambda (selected)
              (let ((milestone-id
                     (find-match-in-alist selected (org-clubhouse-milestones))))
-               (message "%d" milestone-id)
                (funcall cb milestone-id)))))
 
 (defun org-clubhouse-prompt-for-story-type (cb)
@@ -502,20 +523,28 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
 ;;; Story creation
 ;;;
 
+(defun org-clubhouse-default-state-id ()
+  (alist-get-equal org-clubhouse-default-state (org-clubhouse-workflow-states)))
+
 (cl-defun org-clubhouse-create-story-internal
     (title &key project-id epic-id story-type)
   (assert (and (stringp title)
                (integerp project-id)
                (or (null epic-id) (integerp epic-id))))
-  (org-clubhouse-request
-   "POST"
-   "stories"
-   :data
-   (json-encode
-    `((name . ,title)
-      (project_id . ,project-id)
-      (epic_id . ,epic-id)
-      (story_type . ,story-type)))))
+  (let ((workflow-state-id (org-clubhouse-default-state-id))
+        (params `((name . ,title)
+                  (project_id . ,project-id)
+                  (epic_id . ,epic-id)
+                  (story_type . ,story-type))))
+
+    (when workflow-state-id
+      (push `(workflow_state_id . ,workflow-state-id) params))
+
+    (org-clubhouse-request
+     "POST"
+     "stories"
+     :data
+     (json-encode params))))
 
 (defun org-clubhouse-populate-created-story (elt story)
   (let ((elt-start  (plist-get elt :begin))
@@ -547,8 +576,7 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
 
       (org-todo "TODO"))))
 
-
-(defun org-clubhouse-create-story (&optional beg end)
+(defun org-clubhouse-create-story (&optional beg end &key then)
   "Creates a clubhouse story using selected headlines.
 
 Will pull the title from the headline at point,
@@ -557,8 +585,8 @@ or create cards for all the headlines in the selected region.
 All stories are added to the same project and epic, as selected via two prompts.
 If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
   (interactive
-    (when (use-region-p)
-      (list (region-beginning) (region-end))))
+   (when (use-region-p)
+     (list (region-beginning) (region-end))))
 
   (let* ((elts     (org-clubhouse-collect-headlines beg end))
          (new-elts (-remove (lambda (elt) (plist-get elt :CLUBHOUSE-ID)) elts)))
@@ -566,20 +594,98 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
      (lambda (project-id)
        (when project-id
          (org-clubhouse-prompt-for-epic
-           (lambda (epic-id)
-             (let ((selected-story-type org-clubhouse-default-story-type))
-               (if (not selected-story-type)
-                 (org-clubhouse-prompt-for-story-type
-                    (lambda (story-type)
-                      set selected-story-type story-type))
+          (lambda (epic-id)
+            (let ((selected-story-type org-clubhouse-default-story-type))
+              (if (not selected-story-type)
+                  (org-clubhouse-prompt-for-story-type
+                   (lambda (story-type)
+                     (setq selected-story-type story-type)))
                 (-map (lambda (elt)
-                    (let* ((title (plist-get elt :title))
-                            (story (org-clubhouse-create-story-internal
-                                    title
-                                    :project-id project-id
-                                    :epic-id epic-id
-                                    :story-type selected-story-type)))
-                    (org-clubhouse-populate-created-story elt story))) new-elts))))))))))
+                        (let* ((title (plist-get elt :title))
+                               (story (org-clubhouse-create-story-internal
+                                       title
+                                       :project-id project-id
+                                       :epic-id epic-id)))
+                          (org-clubhouse-populate-created-story elt story)
+                          (when (functionp then)
+                            (funcall then story))))
+                      new-elts))))))))))
+
+(defun org-clubhouse-create-story-with-task-list (&optional beg end)
+  "Creates a clubhouse story using the selected headline, making all direct
+children of that headline into tasks in the task list of the story."
+  (interactive
+   (when (use-region-p)
+     (list (region-beginning) (region-end))))
+
+  (let* ((elt (org-element-and-children-at-point)))
+    (org-clubhouse-create-story nil nil
+     :then (lambda (story)
+             (pp story)
+             (org-clubhouse-push-task-list
+              (alist-get 'id story)
+              (plist-get elt :children))))))
+
+;;;
+;;; Task creation
+;;;
+
+(cl-defun org-clubhouse-create-task (title &key story-id)
+  (assert (and (stringp title)
+               (integerp story-id)))
+  (org-clubhouse-request
+   "POST"
+   (format "/stories/%d/tasks" story-id)
+   :data (json-encode `((description . ,title)))))
+
+(defun org-clubhouse-push-task-list (&optional parent-clubhouse-id child-elts)
+  "Writes each child element of the current clubhouse element as a task list
+item of the associated clubhouse ID.
+
+when called as (org-clubhouse-push-task-list PARENT-CLUBHOUSE-ID CHILD-ELTS),
+allows manually passing a clubhouse ID and list of org-element plists to write"
+  (interactive)
+  (let* ((elt (org-element-and-children-at-point))
+         (parent-clubhouse-id (or parent-clubhouse-id
+                                  (org-element-extract-clubhouse-id elt)))
+         (child-elts (or child-elts (plist-get elt :children)))
+         ;; (story (org-clubhouse-get-story parent-clubhouse-id))
+         ;; (existing-tasks (alist-get 'tasks story))
+         ;; (task-exists
+         ;;  (lambda (task-name)
+         ;;    (some (lambda (task)
+         ;;            (string-equal task-name (alist-get 'description task)))
+         ;;          (existing-tasks))))
+         )
+    (dolist (child-elt child-elts)
+      (let ((task-name (plist-get child-elt :title)))
+        ;; (unless (task-exists task-name)
+        (let ((task (org-clubhouse-create-task
+                     task-name
+                     :story-id parent-clubhouse-id)))
+          ;; TODO this doesn't currently work, since the act of populating the
+          ;; previous task bumps up the char start of the next task
+          ;; (org-clubhouse-populate-created-task child-elt task)
+          )
+        ;; )
+        ))))
+
+(defun org-clubhouse-populate-created-task (elt task)
+  (let ((elt-start (plist-get elt :begin))
+        (task-id   (alist-get 'id task))
+        (story-id  (alist-get 'story_id task)))
+
+    (save-excursion
+      (goto-char elt-start)
+
+      (org-set-property "clubhouse-task-id" (format "%d" task-id))
+
+      (org-set-property "clubhouse-story-id"
+                        (org-make-link-string
+                         (org-clubhouse-link-to-story story-id)
+                         (number-to-string story-id)))
+
+      (org-todo "TODO"))))
 
 ;;;
 ;;; Story updates
