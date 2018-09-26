@@ -728,6 +728,37 @@ allows manually passing a clubhouse ID and list of org-element plists to write"
         (message "Successfully updated clubhouse status to \"%s\""
                  clubhouse-workflow-state)))))
 
+
+(defun org-clubhouse-headlines-from-query (level query)
+  "Create `org-mode' headlines from a clubhouse query.
+
+Submits QUERY to clubhouse, and creates `org-mode' headlines from all the
+resulting stories at headline level LEVEL."
+  (interactive
+   "*nLevel: \nMQuery: ")
+  (let* ((sprint-stories
+          (org-clubhouse-request
+           "GET"
+           "search/stories"
+           :params '((query query))))
+         (sprint-story-list (-> sprint-stories cdr car cdr (append nil))))
+    (save-mark-and-excursion
+      (insert
+       (mapconcat (lambda (story)
+                    (format
+                     "%s TODO %s
+:PROPERTIES:
+:clubhouse-id: %s
+:END:
+"
+                     (make-string level ?*)
+                     (alist-get 'name story)
+                     (let ((story-id (alist-get 'id story)))
+                       (org-make-link-string
+                        (org-clubhouse-link-to-story story-id)
+                        (number-to-string story-id)))))
+                  (reject-archived sprint-story-list) "\n")))))
+
 (define-minor-mode org-clubhouse-mode
   :init-value nil
   :group 'org
