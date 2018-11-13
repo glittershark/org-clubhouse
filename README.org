@@ -25,6 +25,12 @@ Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mo
 (def-package! org-clubhouse)
 #+END_SRC
 
+** [[http://spacemacs.org/][Spacemacs]]
+#+BEGIN_SRC emacs-lisp
+;; in .spacemacs (SPC+fed)
+   dotspacemacs-additional-packages
+    '((org-clubhouse :location (recipe :fetcher github :repo "urbint/org-clubhouse")))
+#+END_SRC
 
 * Setup
 
