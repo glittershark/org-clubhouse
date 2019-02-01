@@ -595,21 +595,22 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
        (when project-id
          (org-clubhouse-prompt-for-epic
           (lambda (epic-id)
-            (let ((selected-story-type org-clubhouse-default-story-type))
-              (if (not selected-story-type)
-                  (org-clubhouse-prompt-for-story-type
+            (let ((create-story
                    (lambda (story-type)
-                     (setq selected-story-type story-type)))
-                (-map (lambda (elt)
-                        (let* ((title (plist-get elt :title))
-                               (story (org-clubhouse-create-story-internal
-                                       title
-                                       :project-id project-id
-                                       :epic-id epic-id)))
-                          (org-clubhouse-populate-created-story elt story)
-                          (when (functionp then)
-                            (funcall then story))))
-                      new-elts))))))))))
+                     (-map (lambda (elt)
+                             (let* ((title (plist-get elt :title))
+                                    (story (org-clubhouse-create-story-internal
+                                            title
+                                            :project-id project-id
+                                            :epic-id epic-id
+                                            :story-type story-type)))
+                               (org-clubhouse-populate-created-story elt story)
+                               (when (functionp then)
+                                 (funcall then story))))
+                           new-elts))))
+              (if org-clubhouse-default-story-type
+                  (funcall create-story org-clubhouse-default-story-type)
+                (org-clubhouse-prompt-for-story-type create-story))))))))))
 
 (defun org-clubhouse-create-story-with-task-list (&optional beg end)
   "Creates a clubhouse story using the selected headline, making all direct
