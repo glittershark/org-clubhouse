@@ -740,24 +740,31 @@ resulting stories at headline level LEVEL."
           (org-clubhouse-request
            "GET"
            "search/stories"
-           :params '((query query))))
-         (sprint-story-list (-> sprint-stories cdr car cdr (append nil))))
-    (save-mark-and-excursion
-      (insert
-       (mapconcat (lambda (story)
-                    (format
-                     "%s TODO %s
+           :params `((query ,query))))
+         (sprint-story-list (-> sprint-stories cdr car cdr (append nil)
+                                reject-archived)))
+    (if (null sprint-story-list)
+        (message "Query returned no stories: %s" query)
+      (save-mark-and-excursion
+        (insert
+         (mapconcat (lambda (story)
+                      (format
+                       "%s TODO %s
 :PROPERTIES:
 :clubhouse-id: %s
 :END:
+:DESCRIPTION:
+%s
+:END:
 "
-                     (make-string level ?*)
-                     (alist-get 'name story)
-                     (let ((story-id (alist-get 'id story)))
-                       (org-make-link-string
-                        (org-clubhouse-link-to-story story-id)
-                        (number-to-string story-id)))))
-                  (reject-archived sprint-story-list) "\n")))))
+                       (make-string level ?*)
+                       (alist-get 'name story)
+                       (let ((story-id (alist-get 'id story)))
+                         (org-make-link-string
+                          (org-clubhouse-link-to-story story-id)
+                          (number-to-string story-id)))
+                       (alist-get 'description story)))
+                    (reject-archived sprint-story-list) "\n"))))))
 
 (define-minor-mode org-clubhouse-mode
   :init-value nil
