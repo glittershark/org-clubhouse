@@ -238,6 +238,32 @@ not be prompted")
           (goto-char (plist-get elt :end)))))
     (append elt `(:children ,(reverse children)))))
 
+(defun +org-element-contents (elt)
+  (buffer-substring-no-properties
+   (plist-get (cadr elt) :contents-begin)
+   (plist-get (cadr elt) :contents-end)))
+
+(defun org-clubhouse-find-description-drawer ()
+  "Try to find a DESCRIPTION drawer in the current element."
+  (let ((elt (org-element-at-point)))
+    (cl-case (car elt)
+      ('drawer (+org-element-contents elt))
+      ('headline
+       (when-let ((drawer-pos (string-match
+                               ":DESCRIPTION:"
+                               (+org-element-contents elt))))
+         (save-excursion
+           (goto-char (+ (plist-get (cadr elt) :contents-begin)
+                         drawer-pos))
+           (org-clubhouse-find-description-drawer)))))))
+
+(comment
+ --elt
+ (equal 'drawer (car --elt))
+ ()
+ --elt
+ )
+
 ;;;
 ;;; API integration
 ;;;
@@ -697,8 +723,10 @@ allows manually passing a clubhouse ID and list of org-element plists to write"
 ;;;
 
 (defun org-clubhouse-update-story-title ()
-  "Updates the title of the Clubhouse story linked to the current headline with
-the text of the headline"
+  "Update the title of the Clubhouse story linked to the current headline.
+
+Update the title of the story linked to the current headline with the text of
+the headline."
   (interactive)
 
   (when-let (clubhouse-id (org-element-clubhouse-id))
@@ -721,6 +749,11 @@ the text of the headline"
    (json-encode attrs)))
 
 (defun org-clubhouse-update-status ()
+  "Update the status of the Clubhouse story linked to the current element.
+
+Update the status of the Clubhouse story linked to the current element with the
+entry in `org-clubhouse-state-alist' corresponding to the todo-keyword of the
+element."
   (interactive)
   (when-let* ((clubhouse-id (org-element-clubhouse-id)))
     (let* ((elt (org-element-find-headline))
@@ -735,6 +768,18 @@ the text of the headline"
         (message "Successfully updated clubhouse status to \"%s\""
                  clubhouse-workflow-state)))))
 
+(defun org-clubhouse-update-description ()
+  "Update the description of the Clubhouse story linked to the current element.
+
+Update the status of the Clubhouse story linked to the current element with the
+contents of a drawer inside the element called DESCRIPTION, if any."
+  (interactive)
+  (when-let* ((clubhouse-id (org-element-clubhouse-id))
+              (new-description (org-clubhouse-find-description-drawer)))
+    (org-clubhouse-update-story-internal
+     clubhouse-id
+     :description new-description)
+    (message "Successfully updated story description")))
 
 (defun org-clubhouse-headlines-from-query (level query)
   "Create `org-mode' headlines from a clubhouse query.

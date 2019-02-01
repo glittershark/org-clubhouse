@@ -72,6 +72,9 @@ org-clubhouse provides the following commands:
 - ~org-clubhouse-update-story-title~
   Updates the title of the Clubhouse story linked to the current headline with
   the text of the headline
+- ~org-clubhouse-update-description~
+  Update the status of the Clubhouse story linked to the current element with
+  the contents of a drawer inside the element called DESCRIPTION, if any exists
 - ~org-clubhouse-headlines-from-query~
   Create org-mode headlines from a clubhouse query at the cursor's current
   position, prompting for the headline indentation level and clubhouse query
