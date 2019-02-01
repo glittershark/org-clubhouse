@@ -73,7 +73,10 @@ not be prompted")
     ("PR"     . "Review")
     ("DONE"   . "Merged")
     ("[X]"    . "Merged")
-    ("CLOSED" . "Merged")))
+    ("CLOSED" . "Merged"))
+  "Alist mapping org-mode todo keywords to their corresponding states in
+  Clubhouse. In `org-clubhouse-mode', moving headlines to these todo keywords
+  will update to the corresponding status in Clubhouse")
 
 (defvar org-clubhouse-story-types
   '(("feature" . "Feature")
@@ -86,7 +89,8 @@ not be prompted")
     ("chore"   . "Chore")
     ("prompt"  . "**Prompt each time (do not set a default story type)**")))
 
-(defvar org-clubhouse-default-state "Proposed")
+(defvar org-clubhouse-default-state "Proposed"
+  "Default state to create all new stories in")
 
 ;;;
 ;;; Utilities
@@ -693,6 +697,8 @@ allows manually passing a clubhouse ID and list of org-element plists to write"
 ;;;
 
 (defun org-clubhouse-update-story-title ()
+  "Updates the title of the Clubhouse story linked to the current headline with
+the text of the headline"
   (interactive)
 
   (when-let (clubhouse-id (org-element-clubhouse-id))

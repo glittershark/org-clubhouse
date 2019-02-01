@@ -34,9 +34,50 @@ Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mo
 
 * Setup
 
-Once setup, you'll need to set two global config vars.
+Once installed, you'll need to set two global config vars:
 
 #+BEGIN_SRC emacs-lisp
 (setq org-clubhouse-auth-token "<your-token>"
       org-clubhouse-team-name "<your-team-name>")
 #+END_SRC
+
+You can generate a new personal API token by going to the "API Tokens" tab on
+the "Settings" page in the clubhouse UI.
+
+Org-clubhouse can be configured to update the status of stories as you update
+their todo-keyword in org-mode. To opt-into this behavior, set the
+~org-clubhouse-mode~ minor-mode:
+
+#+BEGIN_SRC emacs-lisp
+(add-hook 'org-mode-hook #'org-clubhouse-mode nil nil)
+#+END_SRC
+
+* Usage
+
+In addition to updating the status of stories linked to clubhouse tickets,
+org-clubhouse provides the following commands:
+
+- ~org-clubhouse-create-story~
+  Creates a new Clubhouse story from the current headline, or if a region of
+  headlines is selected bulk-creates stories with all those headlines
+- ~org-clubhouse-create-epic~
+  Creates a new Clubhouse epic from the current headline, or if a region of
+  headlines is selected bulk-creates epics with all those headlines
+- ~org-clubhouse-create-story-with-task-list~
+  Creates a Clubhouse story from the current headline, making all direct
+  children of the headline into tasks in the task list of the story
+- ~org-clubhouse-push-task-list~
+  Writes each child element of the current clubhouse element as a task list
+  item of the associated clubhouse ID.
+- ~org-clubhouse-update-story-title~
+  Updates the title of the Clubhouse story linked to the current headline with
+  the text of the headline
+- ~org-clubhouse-headlines-from-query~
+  Create org-mode headlines from a clubhouse query at the cursor's current
+  position, prompting for the headline indentation level and clubhouse query
+  text
+
+* Configuration
+
+Refer to the beginning of the [[https://github.com/urbint/org-clubhouse/blob/master/org-clubhouse.el][~org-clubhouse.el~]] file in this repository for
+documentation on all supported configuration variables
