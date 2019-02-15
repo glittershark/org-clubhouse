@@ -239,9 +239,10 @@ not be prompted")
     (append elt `(:children ,(reverse children)))))
 
 (defun +org-element-contents (elt)
-  (buffer-substring-no-properties
-   (plist-get (cadr elt) :contents-begin)
-   (plist-get (cadr elt) :contents-end)))
+  (if-let ((begin (plist-get (cadr elt) :contents-begin))
+           (end (plist-get (cadr elt) :contents-end)))
+      (buffer-substring-no-properties begin end)
+    ""))
 
 (defun org-clubhouse-find-description-drawer ()
   "Try to find a DESCRIPTION drawer in the current element."
@@ -557,15 +558,17 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
   (alist-get-equal org-clubhouse-default-state (org-clubhouse-workflow-states)))
 
 (cl-defun org-clubhouse-create-story-internal
-    (title &key project-id epic-id story-type)
+    (title &key project-id epic-id story-type description)
   (assert (and (stringp title)
                (integerp project-id)
-               (or (null epic-id) (integerp epic-id))))
+               (or (null epic-id) (integerp epic-id))
+               (or (null description) (stringp description))))
   (let ((workflow-state-id (org-clubhouse-default-state-id))
         (params `((name . ,title)
                   (project_id . ,project-id)
                   (epic_id . ,epic-id)
-                  (story_type . ,story-type))))
+                  (story_type . ,story-type)
+                  (description . ,description))))
 
     (when workflow-state-id
       (push `(workflow_state_id . ,workflow-state-id) params))
@@ -627,17 +630,22 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
           (lambda (epic-id)
             (let ((create-story
                    (lambda (story-type)
-                     (-map (lambda (elt)
-                             (let* ((title (plist-get elt :title))
-                                    (story (org-clubhouse-create-story-internal
-                                            title
-                                            :project-id project-id
-                                            :epic-id epic-id
-                                            :story-type story-type)))
-                               (org-clubhouse-populate-created-story elt story)
-                               (when (functionp then)
-                                 (funcall then story))))
-                           new-elts))))
+                     (-map
+                      (lambda (elt)
+                        (let* ((title (plist-get elt :title))
+                               (story (org-clubhouse-create-story-internal
+                                       title
+                                       :project-id project-id
+                                       :epic-id epic-id
+                                       :story-type story-type))
+                               (description
+                                (save-mark-and-excursion
+                                  (goto-char (plist-get elt :begin))
+                                  (org-clubhouse-find-description-drawer))))
+                          (org-clubhouse-populate-created-story elt story)
+                          (when (functionp then)
+                            (funcall then story))))
+                      new-elts))))
               (if org-clubhouse-default-story-type
                   (funcall create-story org-clubhouse-default-story-type)
                 (org-clubhouse-prompt-for-story-type create-story))))))))))
