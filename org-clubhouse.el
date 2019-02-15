@@ -827,7 +827,8 @@ resulting stories at headline level LEVEL."
                     (reject-archived sprint-story-list) "\n"))))))
 
 (define-minor-mode org-clubhouse-mode
-  :init-value nil
+  "If enabled, updates to the todo keywords on org headlines will update the
+linked ticket in Clubhouse."
   :group 'org
   :lighter "Org-Clubhouse"
   :keymap '()
