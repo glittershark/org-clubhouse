@@ -562,7 +562,7 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
                   (project_id . ,project-id)
                   (epic_id . ,epic-id)
                   (story_type . ,story-type)
-                  (description . ,description))))
+                  (description . ,(or description "")))))
 
     (when workflow-state-id
       (push `(workflow_state_id . ,workflow-state-id) params))
@@ -627,15 +627,16 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
                      (-map
                       (lambda (elt)
                         (let* ((title (plist-get elt :title))
+                               (description
+                                (save-mark-and-excursion
+                                  (goto-char (plist-get elt :begin))
+                                  (org-clubhouse-find-description-drawer)))
                                (story (org-clubhouse-create-story-internal
                                        title
                                        :project-id project-id
                                        :epic-id epic-id
-                                       :story-type story-type))
-                               (description
-                                (save-mark-and-excursion
-                                  (goto-char (plist-get elt :begin))
-                                  (org-clubhouse-find-description-drawer))))
+                                       :story-type story-type
+                                       :description description)))
                           (org-clubhouse-populate-created-story elt story)
                           (when (functionp then)
                             (funcall then story))))
