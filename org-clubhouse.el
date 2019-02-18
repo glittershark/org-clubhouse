@@ -120,6 +120,10 @@ not be prompted")
        (-find (lambda (pair) (equal key (car pair))))
        (cdr)))
 
+(defun invert-alist (alist)
+  "Invert the keys and values of ALIST."
+  (-map (lambda (cell) (cons (cdr cell) (car cell))) alist))
+
 (comment
 
  (alist->plist
@@ -426,6 +430,17 @@ not be prompted")
                          '((name . :title)
                            (id . :id)
                            (status . :status)))))))
+
+(defun org-clubhouse-workflow-state-id-to-todo-keyword (workflow-state-id)
+  "Convert the named clubhouse WORKFLOW-STATE-ID to an org todo keyword."
+  (let* ((state-name (alist-get-equal
+                      workflow-state-id
+                      (invert-alist (org-clubhouse-workflow-states))))
+         (inv-state-name-alist
+          (-map (lambda (cell) (cons (cdr cell) (car cell)))
+                org-clubhouse-state-alist)))
+    (or (alist-get-equal state-name inv-state-name-alist)
+        (s-upcase state-name))))
 
 ;;;
 ;;; Prompting
@@ -804,7 +819,7 @@ resulting stories at headline level LEVEL."
         (insert
          (mapconcat (lambda (story)
                       (format
-                       "%s TODO %s
+                       "%s %s %s
 :PROPERTIES:
 :clubhouse-id: %s
 :END:
@@ -813,6 +828,8 @@ resulting stories at headline level LEVEL."
 :END:
 "
                        (make-string level ?*)
+                       (org-clubhouse-workflow-state-id-to-todo-keyword
+                        (alist-get 'workflow_state_id story))
                        (alist-get 'name story)
                        (let ((story-id (alist-get 'id story)))
                          (org-make-link-string
@@ -831,7 +848,6 @@ linked ticket in Clubhouse."
             'org-clubhouse-update-status
             nil
             t))
-
 
 (provide 'org-clubhouse)
 ;;; org-clubhouse.el ends here
