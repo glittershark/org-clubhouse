@@ -852,11 +852,11 @@ resulting stories at headline level LEVEL."
   (interactive
    "*nLevel: \nMQuery: ")
   (let* ((story-list (org-clubhouse--search-stories query)))
-    (if (null sprint-story-list)
+    (if (null story-list)
         (message "Query returned no stories: %s" query)
       (save-mark-and-excursion
         (insert (mapconcat #'org-clubhouse--story-to-headline-text
-                           (reject-archived sprint-story-list) "\n"))))))
+                           (reject-archived story-list) "\n"))))))
 
 (defun org-clubhouse-prompt-for-story (cb)
   "Prompt the user for a clubhouse story, then call CB with the full story."
