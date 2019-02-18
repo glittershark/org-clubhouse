@@ -588,7 +588,7 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
      :data
      (json-encode params))))
 
-(defun org-clubhouse-populate-created-story (elt story)
+(cl-defun org-clubhouse-populate-created-story (elt story &key extra-properties)
   (let ((elt-start  (plist-get elt :begin))
         (story-id   (alist-get 'id story))
         (epic-id    (alist-get 'epic_id story))
@@ -615,6 +615,10 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
 
       (org-set-property "story-type"
                         (alist-get-equal story-type org-clubhouse-story-types))
+
+      (dolist (extra-prop extra-properties)
+        (org-set-property (car extra-prop)
+                          (alist-get (cdr extra-prop) story)))
 
       (org-todo "TODO"))))
 
@@ -874,7 +878,10 @@ resulting stories at headline level LEVEL."
   (interactive)
   (org-clubhouse-prompt-for-story
    (lambda (story)
-     (org-clubhouse-populate-created-story (org-element-find-headline) story)
+     (org-clubhouse-populate-created-story
+      (org-element-find-headline)
+      story
+      :extra-properties '(("clubhouse-story-name" . name)))
      (org-todo
       (org-clubhouse-workflow-state-id-to-todo-keyword
        (alist-get 'workflow_state_id story))))))
