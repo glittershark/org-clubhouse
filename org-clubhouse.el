@@ -33,6 +33,7 @@
 
 ;;; Code:
 
+(require 'cl-macs)
 (require 'dash)
 (require 'dash-functional)
 (require 's)
@@ -258,13 +259,6 @@ not be prompted")
                          drawer-pos))
            (org-clubhouse-find-description-drawer)))))))
 
-(comment
- --elt
- (equal 'drawer (car --elt))
- ()
- --elt
- )
-
 ;;;
 ;;; API integration
 ;;;
@@ -413,7 +407,7 @@ not be prompted")
                       'id)))
 
 (defun org-clubhouse-stories-in-project (project-id)
-  "Returns the stories in the given project as org bugs"
+  "Return the stories in the given PROJECT-ID as org headlines."
   (let ((resp-json (org-clubhouse-request "GET" (format "/projects/%d/stories" project-id))))
     (->> resp-json ->list reject-archived
          (-reject (lambda (story) (equal :json-true (alist-get 'completed story))))
@@ -498,7 +492,7 @@ not be prompted")
 
 (cl-defun org-clubhouse-create-epic-internal
     (title &key milestone-id)
-  (assert (and (stringp title)
+  (cl-assert (and (stringp title)
                (integerp milestone-id)))
   (org-clubhouse-request
    "POST"
@@ -559,7 +553,7 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
 
 (cl-defun org-clubhouse-create-story-internal
     (title &key project-id epic-id story-type description)
-  (assert (and (stringp title)
+  (cl-assert (and (stringp title)
                (integerp project-id)
                (or (null epic-id) (integerp epic-id))
                (or (null description) (stringp description))))
@@ -670,7 +664,7 @@ children of that headline into tasks in the task list of the story."
 ;;;
 
 (cl-defun org-clubhouse-create-task (title &key story-id)
-  (assert (and (stringp title)
+  (cl-assert (and (stringp title)
                (integerp story-id)))
   (org-clubhouse-request
    "POST"
@@ -748,7 +742,7 @@ the headline."
 
 (cl-defun org-clubhouse-update-story-internal
     (story-id &rest attrs)
-  (assert (and (integerp story-id)
+  (cl-assert (and (integerp story-id)
                (listp attrs)))
   (org-clubhouse-request
    "PUT"
