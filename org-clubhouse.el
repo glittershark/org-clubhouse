@@ -799,6 +799,9 @@ contents of a drawer inside the element called DESCRIPTION, if any."
      :description new-description)
     (message "Successfully updated story description")))
 
+;;;
+;;; Creating headlines from existing stories
+;;;
 
 (defun org-clubhouse--story-to-headline-text (story)
   (let ((story-id (alist-get 'id story)))
@@ -830,6 +833,13 @@ contents of a drawer inside the element called DESCRIPTION, if any."
       (save-mark-and-excursion
         (insert (org-clubhouse--story-to-headline-text story))))))
 
+(defun org-clubhouse--search-stories (query)
+  (unless (string= "" query)
+    (-> (org-clubhouse-request "GET" "search/stories" :params `((query ,query)))
+        cdadr
+        (append nil)
+        reject-archived)))
+
 (defun org-clubhouse-headlines-from-query (level query)
   "Create `org-mode' headlines from a clubhouse query.
 
@@ -837,18 +847,49 @@ Submits QUERY to clubhouse, and creates `org-mode' headlines from all the
 resulting stories at headline level LEVEL."
   (interactive
    "*nLevel: \nMQuery: ")
-  (let* ((sprint-stories
-          (org-clubhouse-request
-           "GET"
-           "search/stories"
-           :params `((query ,query))))
-         (sprint-story-list (-> sprint-stories cdr car cdr (append nil)
-                                reject-archived)))
+  (let* ((story-list (org-clubhouse--search-stories query)))
     (if (null sprint-story-list)
         (message "Query returned no stories: %s" query)
       (save-mark-and-excursion
         (insert (mapconcat #'org-clubhouse--story-to-headline-text
                            (reject-archived sprint-story-list) "\n"))))))
+
+(defun org-clubhouse-prompt-for-story (cb)
+  "Prompt the user for a clubhouse story, then call CB with the full story."
+  (ivy-read "Story title: "
+            (lambda (search-term)
+              (let* ((stories (org-clubhouse--search-stories
+                               (if search-term (format "\"%s\"" search-term)
+                                 ""))))
+                (-map (lambda (story)
+                        (propertize (alist-get 'name story) 'story story))
+                      stories)))
+            :dynamic-collection t
+            :history 'org-clubhouse-story-prompt
+            :action (lambda (s) (funcall cb (get-text-property 0 'story s)))
+            :require-match t))
+
+(defun org-clubhouse-link ()
+  "Link the current `org-mode' headline with an existing clubhouse story."
+  (interactive)
+  (org-clubhouse-prompt-for-story
+   (lambda (story)
+     (org-clubhouse-populate-created-story (org-element-find-headline) story)
+     (org-todo
+      (org-clubhouse-workflow-state-id-to-todo-keyword
+       (alist-get 'workflow_state_id story))))))
+
+(comment
+ (org-clubhouse--search-stories "train")
+ (org-clubhouse-request "GET" "search/stories" :params `((query ,"")))
+
+ (get-text-property
+  0 'clubhouse-id
+  (propertize "foo" 'clubhouse-id 1234))
+
+ )
+
+;;;
 
 (define-minor-mode org-clubhouse-mode
   "If enabled, updates to the todo keywords on org headlines will update the
