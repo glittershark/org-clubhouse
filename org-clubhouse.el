@@ -799,6 +799,37 @@ contents of a drawer inside the element called DESCRIPTION, if any."
      :description new-description)
     (message "Successfully updated story description")))
 
+
+(defun org-clubhouse--story-to-headline-text (story)
+  (let ((story-id (alist-get 'id story)))
+    (format
+     "%s %s %s
+:PROPERTIES:
+:clubhouse-id: %s
+:END:
+:DESCRIPTION:
+%s
+:END:
+"
+     (make-string level ?*)
+     (org-clubhouse-workflow-state-id-to-todo-keyword
+      (alist-get 'workflow_state_id story))
+     (alist-get 'name story)
+     (org-make-link-string
+      (org-clubhouse-link-to-story story-id)
+      (number-to-string story-id))
+     (alist-get 'description story))))
+
+(defun org-clubhouse-headline-from-story (level story-id)
+  "Create a single `org-mode' headline at LEVEL based on the given clubhouse STORY-ID."
+
+  (interactive "*nLevel: \nnStory ID: ")
+  (let* ((story (org-clubhouse-request "GET" (format "/stories/%d" story-id))))
+    (if (equal '((message . "Resource not found.")) story)
+        (message "Story ID not found: %d" story-id)
+      (save-mark-and-excursion
+        (insert (org-clubhouse--story-to-headline-text story))))))
+
 (defun org-clubhouse-headlines-from-query (level query)
   "Create `org-mode' headlines from a clubhouse query.
 
@@ -816,27 +847,8 @@ resulting stories at headline level LEVEL."
     (if (null sprint-story-list)
         (message "Query returned no stories: %s" query)
       (save-mark-and-excursion
-        (insert
-         (mapconcat (lambda (story)
-                      (format
-                       "%s %s %s
-:PROPERTIES:
-:clubhouse-id: %s
-:END:
-:DESCRIPTION:
-%s
-:END:
-"
-                       (make-string level ?*)
-                       (org-clubhouse-workflow-state-id-to-todo-keyword
-                        (alist-get 'workflow_state_id story))
-                       (alist-get 'name story)
-                       (let ((story-id (alist-get 'id story)))
-                         (org-make-link-string
-                          (org-clubhouse-link-to-story story-id)
-                          (number-to-string story-id)))
-                       (alist-get 'description story)))
-                    (reject-archived sprint-story-list) "\n"))))))
+        (insert (mapconcat #'org-clubhouse--story-to-headline-text
+                           (reject-archived sprint-story-list) "\n"))))))
 
 (define-minor-mode org-clubhouse-mode
   "If enabled, updates to the todo keywords on org headlines will update the
@@ -850,4 +862,5 @@ linked ticket in Clubhouse."
             t))
 
 (provide 'org-clubhouse)
+
 ;;; org-clubhouse.el ends here
