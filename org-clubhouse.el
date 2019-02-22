@@ -692,39 +692,39 @@ children of that headline into tasks in the task list of the story."
    :data (json-encode `((description . ,title)))))
 
 (defun org-clubhouse-push-task-list (&optional parent-clubhouse-id child-elts)
-  "Writes each child element of the current clubhouse element as a task list
-item of the associated clubhouse ID.
+  "Writes each child of the element at point as a task list item.
 
-when called as (org-clubhouse-push-task-list PARENT-CLUBHOUSE-ID CHILD-ELTS),
+When called as (org-clubhouse-push-task-list PARENT-CLUBHOUSE-ID CHILD-ELTS),
 allows manually passing a clubhouse ID and list of org-element plists to write"
   (interactive)
   (let* ((elt (org-element-and-children-at-point))
          (parent-clubhouse-id (or parent-clubhouse-id
                                   (org-element-extract-clubhouse-id elt)))
          (child-elts (or child-elts (plist-get elt :children)))
-         ;; (story (org-clubhouse-get-story parent-clubhouse-id))
-         ;; (existing-tasks (alist-get 'tasks story))
-         ;; (task-exists
-         ;;  (lambda (task-name)
-         ;;    (some (lambda (task)
-         ;;            (string-equal task-name (alist-get 'description task)))
-         ;;          (existing-tasks))))
-         )
-    (dolist (child-elt child-elts)
-      (let ((task-name (plist-get child-elt :title)))
-        ;; (unless (task-exists task-name)
-        (let ((task (org-clubhouse-create-task
-                     task-name
-                     :story-id parent-clubhouse-id)))
-          ;; TODO this doesn't currently work, since the act of populating the
-          ;; previous task bumps up the char start of the next task
-          ;; (org-clubhouse-populate-created-task child-elt task)
-          )
-        ;; )
-        ))))
+         (story (org-clubhouse-get-story parent-clubhouse-id))
+         (existing-tasks (alist-get 'tasks story))
+         (task-exists
+          (lambda (task-name)
+            (cl-some (lambda (task)
+                    (string-equal task-name (alist-get 'description task)))
+                  existing-tasks)))
+         (elts-with-starts
+          (-map (lambda (e) (cons (set-marker (make-marker)
+                                         (plist-get e :begin))
+                             e))
+                child-elts)))
+    (dolist (child-elt-and-start elts-with-starts)
+      (let* ((start (car child-elt-and-start))
+             (child-elt (cdr child-elt-and-start))
+             (task-name (plist-get child-elt :title)))
+        (unless (funcall task-exists task-name)
+          (let ((task (org-clubhouse-create-task
+                       task-name
+                       :story-id parent-clubhouse-id)))
+            (org-clubhouse-populate-created-task child-elt task start)))))))
 
-(defun org-clubhouse-populate-created-task (elt task)
-  (let ((elt-start (plist-get elt :begin))
+(defun org-clubhouse-populate-created-task (elt task &optional begin)
+  (let ((elt-start (or begin (plist-get elt :begin)))
         (task-id   (alist-get 'id task))
         (story-id  (alist-get 'story_id task)))
 
