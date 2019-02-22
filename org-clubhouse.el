@@ -197,8 +197,8 @@ not be prompted")
     (when (equal 'headline (car current-elt))
       (cadr current-elt))))
 
-(defun org-element-extract-clubhouse-id (elt)
-  (when-let* ((clubhouse-id-link (plist-get elt :CLUBHOUSE-ID)))
+(defun org-element-extract-clubhouse-id (elt &optional property)
+  (when-let* ((clubhouse-id-link (plist-get elt (or property :CLUBHOUSE-ID))))
     (cond
      ((string-match
        (rx "[[" (one-or-more anything) "]"
@@ -741,6 +741,21 @@ allows manually passing a clubhouse ID and list of org-element plists to write"
       (org-todo "TODO"))))
 
 ;;;
+;;; Task Updates
+;;;
+
+(cl-defun org-clubhouse-update-task-internal
+    (story-id task-id &rest attrs)
+  (cl-assert (and (integerp story-id)
+                  (integerp task-id)
+                  (listp attrs)))
+  (org-clubhouse-request
+   "PUT"
+   (format "stories/%d" story-id)
+   :data
+   (json-encode attrs)))
+
+;;;
 ;;; Story updates
 ;;;
 
@@ -777,18 +792,39 @@ Update the status of the Clubhouse story linked to the current element with the
 entry in `org-clubhouse-state-alist' corresponding to the todo-keyword of the
 element."
   (interactive)
-  (when-let* ((clubhouse-id (org-element-clubhouse-id)))
-    (let* ((elt (org-element-find-headline))
-           (todo-keyword (-> elt (plist-get :todo-keyword) (substring-no-properties))))
-      (when-let* ((clubhouse-workflow-state
-                  (alist-get-equal todo-keyword org-clubhouse-state-alist))
-                 (workflow-state-id
-                  (alist-get-equal clubhouse-workflow-state (org-clubhouse-workflow-states))))
-        (org-clubhouse-update-story-internal
-         clubhouse-id
-         :workflow_state_id workflow-state-id)
-        (message "Successfully updated clubhouse status to \"%s\""
-                 clubhouse-workflow-state)))))
+  (let* ((elt (org-element-find-headline))
+         (todo-keyword (-> elt
+                           (plist-get :todo-keyword)
+                           (substring-no-properties)))
+
+         (clubhouse-id (org-element-extract-clubhouse-id elt))
+         (task-id (plist-get elt :CLUBHOUSE-TASK-ID)))
+    (cond
+     (clubhouse-id
+      (let* ((todo-keyword (-> elt
+                               (plist-get :todo-keyword)
+                               (substring-no-properties))))
+        (when-let* ((clubhouse-workflow-state
+                     (alist-get-equal todo-keyword org-clubhouse-state-alist))
+                    (workflow-state-id
+                     (alist-get-equal clubhouse-workflow-state
+                                      (org-clubhouse-workflow-states))))
+          (org-clubhouse-update-story-internal
+           clubhouse-id
+           :workflow_state_id workflow-state-id)
+          (message "Successfully updated clubhouse status to \"%s\""
+                   clubhouse-workflow-state))))
+     (task-id
+      (let ((story-id (org-element-extract-clubhouse-id
+                       elt
+                       :CLUBHOUSE-STORY-ID))
+            (done? (member todo-keyword org-done-keywords)))
+        (org-clubhouse-update-task-internal
+         story-id
+         (string-to-number task-id)
+         :done done?)
+        (message "Successfully marked clubhouse task status as %s"
+                 (if done? "complete" "incomplete")))))))
 
 (defun org-clubhouse-update-description ()
   "Update the description of the Clubhouse story linked to the current element.
