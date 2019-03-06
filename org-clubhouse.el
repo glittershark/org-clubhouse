@@ -751,7 +751,7 @@ allows manually passing a clubhouse ID and list of org-element plists to write"
                   (listp attrs)))
   (org-clubhouse-request
    "PUT"
-   (format "stories/%d" story-id)
+   (format "stories/%d/tasks/%d" story-id task-id)
    :data
    (json-encode attrs)))
 
@@ -822,7 +822,7 @@ element."
         (org-clubhouse-update-task-internal
          story-id
          (string-to-number task-id)
-         :done done?)
+         :complete (if done? 't :json-false))
         (message "Successfully marked clubhouse task status as %s"
                  (if done? "complete" "incomplete")))))))
 
