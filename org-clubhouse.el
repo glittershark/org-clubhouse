@@ -47,10 +47,17 @@
 ;;;
 
 (defvar org-clubhouse-auth-token nil
-  "Authorization token for the Clubhouse API")
+  "Authorization token for the Clubhouse API.")
+
+(defvar org-clubhouse-username nil
+  "Username for the current Clubhouse user.
+
+Unfortunately, the Clubhouse API doesn't seem to provide this via the API given
+an API token, so we need to configure this for
+`org-clubhouse-claim-story-on-status-updates' to work")
 
 (defvar org-clubhouse-team-name nil
-  "Team name to use in links to Clubhouse
+  "Team name to use in links to Clubhouse.
 ie https://app.clubhouse.io/<TEAM_NAME>/stories")
 
 (defvar org-clubhouse-project-ids nil
@@ -91,7 +98,19 @@ not be prompted")
     ("prompt"  . "**Prompt each time (do not set a default story type)**")))
 
 (defvar org-clubhouse-default-state "Proposed"
-  "Default state to create all new stories in")
+  "Default state to create all new stories in.")
+
+(defvar org-clubhouse-claim-story-on-status-update 't
+  "Controls the assignee behavior of stories on status update.
+
+If set to 't, will mark the current user as the owner of any clubhouse
+stories on any update to the status.
+
+If set to nil, will never automatically update the assignee of clubhouse
+stories.
+
+If set to a list of todo-state's, will mark the current user as the owner of
+clubhouse stories whenever updating the status to one of those todo states.")
 
 ;;;
 ;;; Utilities
@@ -409,6 +428,19 @@ not be prompted")
     (to-id-name-pairs states
                       'name
                       'id)))
+
+(defcache org-clubhouse-whoami
+  "Returns the ID of the logged in user"
+  (->> (org-clubhouse-request
+        "GET"
+        "/members")
+       ->list
+       (find-if (lambda (m)
+                  (->> m
+                       (alist-get 'profile)
+                       (alist-get 'mention_name)
+                       (equal org-clubhouse-username))))
+       (alist-get 'id)))
 
 (defun org-clubhouse-stories-in-project (project-id)
   "Return the stories in the given PROJECT-ID as org headlines."
@@ -809,11 +841,27 @@ element."
                     (workflow-state-id
                      (alist-get-equal clubhouse-workflow-state
                                       (org-clubhouse-workflow-states))))
-          (org-clubhouse-update-story-internal
-           clubhouse-id
-           :workflow_state_id workflow-state-id)
-          (message "Successfully updated clubhouse status to \"%s\""
-                   clubhouse-workflow-state))))
+          (let ((update-assignee?
+                 (if (or (eq 't org-clubhouse-claim-story-on-status-update)
+                         (member todo-keyword
+                                 org-clubhouse-claim-story-on-status-update))
+                     (if org-clubhouse-username
+                         't
+                       (warn "Not claiming story since `org-clubhouse-username'
+                       is not set")
+                       nil))))
+
+            (org-clubhouse-update-story-internal
+             clubhouse-id
+             :workflow_state_id workflow-state-id
+             :owner_ids (when update-assignee?
+                          (list (org-clubhouse-whoami))))
+            (message
+             (if update-assignee?
+                 "Successfully claimed story and updated clubhouse status to \"%s\""
+               "Successfully updated clubhouse status to \"%s\"")
+             clubhouse-workflow-state)))))
+
      (task-id
       (let ((story-id (org-element-extract-clubhouse-id
                        elt
