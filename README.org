@@ -1,4 +1,4 @@
-* Org-Clubhouse
+#+TITLE: Org-Clubhouse
 
 Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the [[https://clubhouse.io/][Clubhouse]] issue tracker
 
@@ -34,11 +34,12 @@ Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mo
 
 * Setup
 
-Once installed, you'll need to set two global config vars:
+Once installed, you'll need to set three global config vars:
 
 #+BEGIN_SRC emacs-lisp
 (setq org-clubhouse-auth-token "<your-token>"
-      org-clubhouse-team-name "<your-team-name>")
+      org-clubhouse-team-name "<your-team-name>"
+      org-clubhouse-username "<your-username>")
 #+END_SRC
 
 You can generate a new personal API token by going to the "API Tokens" tab on
@@ -79,6 +80,9 @@ org-clubhouse provides the following commands:
   Create org-mode headlines from a clubhouse query at the cursor's current
   position, prompting for the headline indentation level and clubhouse query
   text
+- ~org-clubhouse-claim~
+  Adds the user configured in ~org-clubhouse-username~ as the owner of the
+  clubhouse story associated with the headline at point
 
 * Configuration
 

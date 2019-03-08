@@ -791,22 +791,6 @@ allows manually passing a clubhouse ID and list of org-element plists to write"
 ;;; Story updates
 ;;;
 
-(defun org-clubhouse-update-story-title ()
-  "Update the title of the Clubhouse story linked to the current headline.
-
-Update the title of the story linked to the current headline with the text of
-the headline."
-  (interactive)
-
-  (when-let (clubhouse-id (org-element-clubhouse-id))
-    (let* ((elt (org-element-find-headline))
-           (title (plist-get elt :title)))
-    (org-clubhouse-update-story-internal
-     clubhouse-id
-     :name title)
-    (message "Successfully updated story title to \"%s\""
-             title))))
-
 (cl-defun org-clubhouse-update-story-internal
     (story-id &rest attrs)
   (cl-assert (and (integerp story-id)
@@ -816,6 +800,29 @@ the headline."
    (format "stories/%d" story-id)
    :data
    (json-encode attrs)))
+
+(cl-defun org-clubhouse-update-story-at-point (&rest attrs)
+  (when-let* ((clubhouse-id (org-element-clubhouse-id)))
+    (apply
+     #'org-clubhouse-update-story-internal
+     (cons clubhouse-id attrs))
+    t))
+
+(defun org-clubhouse-update-story-title ()
+  "Update the title of the Clubhouse story linked to the current headline.
+
+Update the title of the story linked to the current headline with the text of
+the headline."
+  (interactive)
+
+  (let* ((elt (org-element-find-headline))
+         (title (plist-get elt :title)))
+    (and
+     (org-clubhouse-update-story-at-point
+      clubhouse-id
+      :name title)
+     (message "Successfully updated story title to \"%s\""
+              title))))
 
 (defun org-clubhouse-update-status ()
   "Update the status of the Clubhouse story linked to the current element.
@@ -880,12 +887,12 @@ element."
 Update the status of the Clubhouse story linked to the current element with the
 contents of a drawer inside the element called DESCRIPTION, if any."
   (interactive)
-  (when-let* ((clubhouse-id (org-element-clubhouse-id))
-              (new-description (org-clubhouse-find-description-drawer)))
-    (org-clubhouse-update-story-internal
-     clubhouse-id
-     :description new-description)
-    (message "Successfully updated story description")))
+  (when-let* ((new-description (org-clubhouse-find-description-drawer)))
+    (and
+     (org-clubhouse-update-story-at-point
+      clubhouse-id
+      :description new-description)
+     (message "Successfully updated story description"))))
 
 ;;;
 ;;; Creating headlines from existing stories
@@ -969,6 +976,16 @@ resulting stories at headline level LEVEL."
      (org-todo
       (org-clubhouse-workflow-state-id-to-todo-keyword
        (alist-get 'workflow_state_id story))))))
+
+(defun org-clubhouse-claim ()
+  "Assign the clubhouse story associated with the headline at point to yourself."
+  (interactive)
+  (if org-clubhouse-username
+      (and
+       (org-clubhouse-update-story-at-point
+        :owner_ids (list (org-clubhouse-whoami)))
+       (message "Successfully claimed story"))
+    (warn "Can't claim story if `org-clubhouse-username' is unset")))
 
 (comment
  (org-clubhouse--search-stories "train")
