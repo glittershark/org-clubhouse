@@ -987,6 +987,30 @@ resulting stories at headline level LEVEL."
        (message "Successfully claimed story"))
     (warn "Can't claim story if `org-clubhouse-username' is unset")))
 
+(defun org-clubhouse-sync-status (&optional beg end)
+  "Pull the status(es) for the story(ies) in region and update the todo state.
+
+Uses `org-clubhouse-state-alist'. Operates over stories from BEG to END"
+  (interactive
+   (when (use-region-p)
+     (list (region-beginning) (region-end))))
+  (let ((elts (-filter (lambda (e) (plist-get e :CLUBHOUSE-ID))
+                       (org-clubhouse-collect-headlines beg end))))
+    (save-mark-and-excursion
+      (dolist (e elts)
+        (goto-char (plist-get e :begin))
+        (let* ((clubhouse-id (org-element-extract-clubhouse-id e))
+               (story (org-clubhouse-get-story clubhouse-id))
+               (workflow-state-id (alist-get 'workflow_state_id story))
+               (todo-keyword (org-clubhouse-workflow-state-id-to-todo-keyword
+                              workflow-state-id)))
+          (let ((org-after-todo-state-change-hook
+                 (remove 'org-clubhouse-update-status
+                         org-after-todo-state-change-hook)))
+            (org-todo todo-keyword)))))
+    (message "Successfully synchronized status of %d stories from Clubhouse"
+             (length elts))))
+
 (comment
  (org-clubhouse--search-stories "train")
  (org-clubhouse-request "GET" "search/stories" :params `((query ,"")))
