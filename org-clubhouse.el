@@ -898,16 +898,29 @@ contents of a drawer inside the element called DESCRIPTION, if any."
 ;;; Creating headlines from existing stories
 ;;;
 
-(defun org-clubhouse--story-to-headline-text (story)
+(defun org-clubhouse--task-to-headline-text (level task)
+  (format "%s %s %s
+:PROPERTIES:
+:clubhouse-task-id: %s
+:clubhouse-story-id: %s
+:END:"
+          (make-string level ?*)
+          (if (equal :json-false (alist-get 'complete task))
+              "TODO" "DONE")
+          (alist-get 'description task)
+          (alist-get 'id task)
+          (org-clubhouse-link-to-story
+           (alist-get 'story_id task))))
+
+(defun org-clubhouse--story-to-headline-text (level story)
   (let ((story-id (alist-get 'id story)))
     (format
      "%s %s %s
 :PROPERTIES:
 :clubhouse-id: %s
 :END:
-:DESCRIPTION:
 %s
-:END:
+%s
 "
      (make-string level ?*)
      (org-clubhouse-workflow-state-id-to-todo-keyword
@@ -916,17 +929,30 @@ contents of a drawer inside the element called DESCRIPTION, if any."
      (org-make-link-string
       (org-clubhouse-link-to-story story-id)
       (number-to-string story-id))
-     (alist-get 'description story))))
+     (let ((desc (alist-get 'description story)))
+       (if (= 0 (length desc)) ""
+         (format ":DESCRIPTION:\n%s\n:END:" desc)))
+     (if-let ((tasks (seq-sort-by
+                      (apply-partially #'alist-get 'position)
+                      #'<
+                      (or (alist-get 'tasks story)
+                          (alist-get 'tasks
+                                     (org-clubhouse-get-story story-id))))))
+         (mapconcat (apply-partially #'org-clubhouse--task-to-headline-text
+                                     (inc level))
+                    tasks
+                    "\n")
+       ""))))
 
 (defun org-clubhouse-headline-from-story (level story-id)
   "Create a single `org-mode' headline at LEVEL based on the given clubhouse STORY-ID."
 
   (interactive "*nLevel: \nnStory ID: ")
-  (let* ((story (org-clubhouse-request "GET" (format "/stories/%d" story-id))))
+  (let* ((story (org-clubhouse-get-story story-id)))
     (if (equal '((message . "Resource not found.")) story)
         (message "Story ID not found: %d" story-id)
       (save-mark-and-excursion
-        (insert (org-clubhouse--story-to-headline-text story))))))
+        (insert (org-clubhouse--story-to-headline-text level story))))))
 
 (defun org-clubhouse--search-stories (query)
   (unless (string= "" query)
@@ -945,9 +971,13 @@ resulting stories at headline level LEVEL."
   (let* ((story-list (org-clubhouse--search-stories query)))
     (if (null story-list)
         (message "Query returned no stories: %s" query)
-      (save-mark-and-excursion
-        (insert (mapconcat #'org-clubhouse--story-to-headline-text
-                           (reject-archived story-list) "\n"))))))
+      (let ((text (mapconcat (apply-partially
+                              #'org-clubhouse--story-to-headline-text
+                              level)
+                             (reject-archived story-list) "\n")))
+        (if (called-interactively-p)
+            (save-mark-and-excursion (insert text))
+          text)))))
 
 (defun org-clubhouse-prompt-for-story (cb)
   "Prompt the user for a clubhouse story, then call CB with the full story."
@@ -1010,16 +1040,6 @@ Uses `org-clubhouse-state-alist'. Operates over stories from BEG to END"
             (org-todo todo-keyword)))))
     (message "Successfully synchronized status of %d stories from Clubhouse"
              (length elts))))
-
-(comment
- (org-clubhouse--search-stories "train")
- (org-clubhouse-request "GET" "search/stories" :params `((query ,"")))
-
- (get-text-property
-  0 'clubhouse-id
-  (propertize "foo" 'clubhouse-id 1234))
-
- )
 
 ;;;
 
