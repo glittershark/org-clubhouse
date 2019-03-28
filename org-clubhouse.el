@@ -909,8 +909,10 @@ contents of a drawer inside the element called DESCRIPTION, if any."
               "TODO" "DONE")
           (alist-get 'description task)
           (alist-get 'id task)
-          (org-clubhouse-link-to-story
-           (alist-get 'story_id task))))
+          (let ((story-id (alist-get 'story_id task)))
+            (org-make-link-string
+             (org-clubhouse-link-to-story story-id)
+             story-id))))
 
 (defun org-clubhouse--story-to-headline-text (level story)
   (let ((story-id (alist-get 'id story)))
