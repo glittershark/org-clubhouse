@@ -890,7 +890,6 @@ contents of a drawer inside the element called DESCRIPTION, if any."
   (when-let* ((new-description (org-clubhouse-find-description-drawer)))
     (and
      (org-clubhouse-update-story-at-point
-      clubhouse-id
       :description new-description)
      (message "Successfully updated story description"))))
 
