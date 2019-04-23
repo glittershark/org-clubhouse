@@ -112,6 +112,17 @@ stories.
 If set to a list of todo-state's, will mark the current user as the owner of
 clubhouse stories whenever updating the status to one of those todo states.")
 
+(defvar org-clubhouse-create-stories-with-labels nil
+  "Controls the way org-clubhouse creates stories with labels based on org tags.
+
+If set to 't, will create labels for all org tags on headlines when stories are
+created.
+
+If set to 'existing, will set labels on created stories only if the label
+already exists in clubhouse
+
+If set to nil, will never create stories with labels")
+
 ;;;
 ;;; Utilities
 ;;;
@@ -282,6 +293,17 @@ clubhouse stories whenever updating the status to one of those todo states.")
                          drawer-pos))
            (org-clubhouse-find-description-drawer)))))))
 
+(defun org-clubhouse--labels-for-elt (elt)
+  "Return the Clubhouse labels based on the tags of ELT and the user's config."
+  (unless (eq nil org-clubhouse-create-stories-with-labels)
+    (let ((tags (org-get-tags (plist-get elt :contents-begin))))
+      (cl-case org-clubhouse-create-stories-with-labels
+        ('t tags)
+        ('existing (-filter (lambda (tag) (-some (lambda (l)
+                                              (string-equal tag (cdr l)))
+                                            (org-clubhouse-labels)))
+                            tags))))))
+
 ;;;
 ;;; API integration
 ;;;
@@ -428,6 +450,10 @@ clubhouse stories whenever updating the status to one of those todo states.")
     (to-id-name-pairs states
                       'name
                       'id)))
+
+(defcache org-clubhouse-labels
+  "Returns labels as (label-id . name)"
+  (org-clubhouse-fetch-as-id-name-pairs "labels"))
 
 (defcache org-clubhouse-whoami
   "Returns the ID of the logged in user"
@@ -599,7 +625,7 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
   (alist-get-equal org-clubhouse-default-state (org-clubhouse-workflow-states)))
 
 (cl-defun org-clubhouse-create-story-internal
-    (title &key project-id epic-id story-type description)
+    (title &key project-id epic-id story-type description labels)
   (cl-assert (and (stringp title)
                (integerp project-id)
                (or (null epic-id) (integerp epic-id))
@@ -609,7 +635,8 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
                   (project_id . ,project-id)
                   (epic_id . ,epic-id)
                   (story_type . ,story-type)
-                  (description . ,(or description "")))))
+                  (description . ,(or description ""))
+                  (labels . ,labels))))
 
     (when workflow-state-id
       (push `(workflow_state_id . ,workflow-state-id) params))
@@ -682,12 +709,16 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
                                 (save-mark-and-excursion
                                   (goto-char (plist-get elt :begin))
                                   (org-clubhouse-find-description-drawer)))
+                               (labels (-map (lambda (l) `((name . ,l)))
+                                             (org-clubhouse--labels-for-elt
+                                              elt)))
                                (story (org-clubhouse-create-story-internal
                                        title
                                        :project-id project-id
                                        :epic-id epic-id
                                        :story-type story-type
-                                       :description description)))
+                                       :description description
+                                       :labels labels)))
                           (org-clubhouse-populate-created-story elt story)
                           (when (functionp then)
                             (funcall then story))))
