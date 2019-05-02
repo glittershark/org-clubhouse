@@ -963,7 +963,7 @@ which labels to set."
 (defun org-clubhouse--story-to-headline-text (level story)
   (let ((story-id (alist-get 'id story)))
     (format
-     "%s %s %s
+     "%s %s %s :%s:
 :PROPERTIES:
 :clubhouse-id: %s
 :END:
@@ -974,6 +974,11 @@ which labels to set."
      (org-clubhouse-workflow-state-id-to-todo-keyword
       (alist-get 'workflow_state_id story))
      (alist-get 'name story)
+     (->> story
+          (alist-get 'labels)
+          ->list
+          (-map (apply-partially #'alist-get 'name))
+          (s-join ":"))
      (org-make-link-string
       (org-clubhouse-link-to-story story-id)
       (number-to-string story-id))
@@ -1000,7 +1005,8 @@ which labels to set."
     (if (equal '((message . "Resource not found.")) story)
         (message "Story ID not found: %d" story-id)
       (save-mark-and-excursion
-        (insert (org-clubhouse--story-to-headline-text level story))))))
+        (insert (org-clubhouse--story-to-headline-text level story))
+        (org-align-tags)))))
 
 (defun org-clubhouse--search-stories (query)
   (unless (string= "" query)
@@ -1024,7 +1030,9 @@ resulting stories at headline level LEVEL."
                               level)
                              (reject-archived story-list) "\n")))
         (if (called-interactively-p)
-            (save-mark-and-excursion (insert text))
+            (save-mark-and-excursion
+              (insert text)
+              (org-align-all-tags))
           text)))))
 
 (defun org-clubhouse-prompt-for-story (cb)
