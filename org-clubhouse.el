@@ -997,9 +997,8 @@ which labels to set."
                     "\n")
        ""))))
 
-(defun org-clubhouse-headline-from-story (level story-id)
+(defun org-clubhouse-headline-from-story-id (level story-id)
   "Create a single `org-mode' headline at LEVEL based on the given clubhouse STORY-ID."
-
   (interactive "*nLevel: \nnStory ID: ")
   (let* ((story (org-clubhouse-get-story story-id)))
     (if (equal '((message . "Resource not found.")) story)
@@ -1049,6 +1048,16 @@ resulting stories at headline level LEVEL."
             :history 'org-clubhouse-story-prompt
             :action (lambda (s) (funcall cb (get-text-property 0 'story s)))
             :require-match t))
+
+(defun org-clubhouse-headline-from-story (level)
+  "Prompt for a story, and create an org headline at LEVEL from that story."
+  (interactive "*nLevel: ")
+  (org-clubhouse-prompt-for-story
+   (lambda (story)
+     (save-mark-and-excursion
+       (insert (org-clubhouse--story-to-headline-text level story))
+       (org-align-tags)))))
+
 
 (defun org-clubhouse-link ()
   "Link the current `org-mode' headline with an existing clubhouse story."
