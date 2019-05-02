@@ -297,12 +297,13 @@ If set to nil, will never create stories with labels")
   "Return the Clubhouse labels based on the tags of ELT and the user's config."
   (unless (eq nil org-clubhouse-create-stories-with-labels)
     (let ((tags (org-get-tags (plist-get elt :contents-begin))))
-      (cl-case org-clubhouse-create-stories-with-labels
-        ('t tags)
-        ('existing (-filter (lambda (tag) (-some (lambda (l)
-                                              (string-equal tag (cdr l)))
-                                            (org-clubhouse-labels)))
-                            tags))))))
+      (-map (lambda (l) `((name . ,l)))
+            (cl-case org-clubhouse-create-stories-with-labels
+              ('t tags)
+              ('existing (-filter (lambda (tag) (-some (lambda (l)
+                                                    (string-equal tag (cdr l)))
+                                                  (org-clubhouse-labels)))
+                                  tags)))))))
 
 ;;;
 ;;; API integration
@@ -709,9 +710,7 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
                                 (save-mark-and-excursion
                                   (goto-char (plist-get elt :begin))
                                   (org-clubhouse-find-description-drawer)))
-                               (labels (-map (lambda (l) `((name . ,l)))
-                                             (org-clubhouse--labels-for-elt
-                                              elt)))
+                               (labels (org-clubhouse--labels-for-elt elt))
                                (story (org-clubhouse-create-story-internal
                                        title
                                        :project-id project-id
@@ -923,6 +922,23 @@ contents of a drawer inside the element called DESCRIPTION, if any."
      (org-clubhouse-update-story-at-point
       :description new-description)
      (message "Successfully updated story description"))))
+
+(defun org-clubhouse-update-labels ()
+  "Update the labels of the Clubhouse story linked to the current element.
+
+Will use the value of `org-clubhouse-create-stories-with-labels' to determine
+which labels to set."
+  (interactive)
+  (when-let* ((elt (org-element-find-headline))
+              (new-labels (org-clubhouse--labels-for-elt elt)))
+    (and
+     (org-clubhouse-update-story-at-point
+      :labels new-labels)
+     (message "Successfully updated story labels to :%s:"
+              (->> new-labels
+                   (-map #'cdar)
+                   (s-join ":"))))))
+
 
 ;;;
 ;;; Creating headlines from existing stories
