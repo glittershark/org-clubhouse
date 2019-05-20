@@ -992,7 +992,7 @@ which labels to set."
                           (alist-get 'tasks
                                      (org-clubhouse-get-story story-id))))))
          (mapconcat (apply-partially #'org-clubhouse--task-to-headline-text
-                                     (inc level))
+                                     (1+ level))
                     tasks
                     "\n")
        ""))))
