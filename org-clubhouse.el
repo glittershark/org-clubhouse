@@ -964,7 +964,7 @@ which labels to set."
 (defun org-clubhouse--story-to-headline-text (level story)
   (let ((story-id (alist-get 'id story)))
     (format
-     "%s %s %s :%s:
+     "%s %s %s %s
 :PROPERTIES:
 :clubhouse-id: %s
 :END:
@@ -975,11 +975,12 @@ which labels to set."
      (org-clubhouse-workflow-state-id-to-todo-keyword
       (alist-get 'workflow_state_id story))
      (alist-get 'name story)
-     (->> story
-          (alist-get 'labels)
-          ->list
-          (-map (apply-partially #'alist-get 'name))
-          (s-join ":"))
+     (if-let ((labels (->> story
+                             (alist-get 'labels)
+                             ->list
+                             (-map (apply-partially #'alist-get 'name)))))
+         (format ":%s:" (s-join ":" labels))
+       "")
      (org-make-link-string
       (org-clubhouse-link-to-story story-id)
       (number-to-string story-id))
