@@ -50,14 +50,6 @@ Once installed, you'll need to set three global config vars:
 You can generate a new personal API token by going to the "API Tokens" tab on
 the "Settings" page in the clubhouse UI.
 
-Org-clubhouse can be configured to update the status of stories as you update
-their todo-keyword in org-mode. To opt-into this behavior, set the
-~org-clubhouse-mode~ minor-mode:
-
-#+BEGIN_SRC emacs-lisp
-(add-hook 'org-mode-hook #'org-clubhouse-mode nil nil)
-#+END_SRC
-
 * Usage
 
 ** Reading from clubhouse
@@ -96,6 +88,32 @@ their todo-keyword in org-mode. To opt-into this behavior, set the
 - ~org-clubhouse-claim~
   Adds the user configured in ~org-clubhouse-username~ as the owner of the
   clubhouse story associated with the headline at point
+
+*** Automatically updating Clubhouse story statuses
+
+Org-clubhouse can be configured to update the status of stories as you update
+their todo-keyword in org-mode. To opt-into this behavior, set the
+~org-clubhouse-mode~ minor-mode:
+
+#+BEGIN_SRC emacs-lisp
+(add-hook 'org-mode-hook #'org-clubhouse-mode nil nil)
+#+END_SRC
+
+The mapping from org-mode todo-keywords is configured via the
+~org-clubhouse-state-alist~ variable, which should be an [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Association-Lists.html][alist]] mapping (string)
+[[https://orgmode.org/manual/Workflow-states.html][org-mode todo-keywords]] to the (string) names of their corresponding workflow
+state. You can have todo-keywords that don't map to a workflow state (I use this
+in my workflow extensively) and org-clubhouse will just preserve the previous
+state of the story when moving to that state.
+
+An example config:
+
+#+BEGIN_SRC emacs-lisp
+(setq org-clubhouse-state-alist
+      '(("TODO"   . "To Do")
+        ("ACTIVE" . "In Progress")
+        ("DONE"   . "Done")))
+#+END_SRC
 
 * Philosophy
 
