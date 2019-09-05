@@ -13,7 +13,7 @@ more of a personal project than a company one)
 #+BEGIN_SRC emacs-lisp
 (quelpa '(org-clubhouse
           :fetcher github
-          :repo "urbint/org-clubhouse"))
+          :repo "glittershark/org-clubhouse"))
 #+END_SRC
 
 ** [[https://github.com/hlissner/doom-emacs/][DOOM Emacs]]
@@ -22,7 +22,7 @@ more of a personal project than a company one)
 ;; in packages.el
 (package! org-clubhouse
   :recipe (:fetcher github
-           :repo "urbint/org-clubhouse"
+           :repo "glittershark/org-clubhouse"
            :files ("*")))
 
 ;; in config.el
@@ -33,7 +33,7 @@ more of a personal project than a company one)
 #+BEGIN_SRC emacs-lisp
 ;; in .spacemacs (SPC+fed)
    dotspacemacs-additional-packages
-    '((org-clubhouse :location (recipe :fetcher github :repo "urbint/org-clubhouse")))
+    '((org-clubhouse :location (recipe :fetcher github :repo "glittershark/org-clubhouse")))
 #+END_SRC
 
 
