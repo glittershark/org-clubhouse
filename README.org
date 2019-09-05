@@ -1,4 +1,4 @@
-#+TITLE: Org-Clubhouse
+#+TITLE:Org-Clubhouse
 
 Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the [[https://clubhouse.io/][Clubhouse]]
 issue tracker
@@ -60,8 +60,20 @@ their todo-keyword in org-mode. To opt-into this behavior, set the
 
 * Usage
 
-In addition to updating the status of stories linked to clubhouse tickets,
-org-clubhouse provides the following commands:
+** Reading from clubhouse
+
+- ~org-clubhouse-headlines-from-query~
+  Create org-mode headlines from a [[https://help.clubhouse.io/hc/en-us/articles/360000046646-Searching-in-Clubhouse-Story-Search][clubhouse query]] at the cursor's current
+  position, prompting for the headline indentation level and clubhouse query
+  text
+- ~org-clubhouse-headline-from-story~
+  Prompts for headline indentation level and the title of a story (which will
+  complete using the titles of all stories in your Clubhouse workspace) and
+  creates an org-mode headline from that story
+- ~org-clubhouse-headline-from-story-id~
+  Creates an org-mode headline directly from the ID of a clubhouse story
+
+** Writing to clubhouse
 
 - ~org-clubhouse-create-story~
   Creates a new Clubhouse story from the current headline, or if a region of
@@ -81,10 +93,6 @@ org-clubhouse provides the following commands:
 - ~org-clubhouse-update-description~
   Update the status of the Clubhouse story linked to the current element with
   the contents of a drawer inside the element called DESCRIPTION, if any exists
-- ~org-clubhouse-headlines-from-query~
-  Create org-mode headlines from a clubhouse query at the cursor's current
-  position, prompting for the headline indentation level and clubhouse query
-  text
 - ~org-clubhouse-claim~
   Adds the user configured in ~org-clubhouse-username~ as the owner of the
   clubhouse story associated with the headline at point
