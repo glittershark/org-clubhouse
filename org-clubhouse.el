@@ -311,7 +311,7 @@ If set to nil, will never create stories with labels")
 ;;; API integration
 ;;;
 
-(defvar org-clubhouse-base-url* "https://api.clubhouse.io/api/v2")
+(defvar org-clubhouse-base-url* "https://api.clubhouse.io/api/v3")
 
 (defun org-clubhouse-auth-url (url &optional params)
  (concat url
