@@ -40,6 +40,7 @@
 (require 'org)
 (require 'org-element)
 (require 'subr-x)
+(require 'ivy)
 (require 'json)
 
 ;;;
