@@ -432,7 +432,7 @@ If set to nil, will never create stories with labels")
   (org-clubhouse-fetch-as-id-name-pairs "projects"))
 
 (defcache org-clubhouse-epics
-  "Returns projects as (project-id . name)"
+  "Returns epics as (epic-id . name)"
   (org-clubhouse-fetch-as-id-name-pairs "epics"))
 
 (defcache org-clubhouse-milestones
@@ -520,7 +520,7 @@ If set to nil, will never create stories with labels")
 (defun org-clubhouse-prompt-for-epic (cb)
   (ivy-read
    "Select an epic: "
-   (-map #'cdr (org-clubhouse-epics))
+   (-map #'cdr (append '((nil . "No Epic")) (org-clubhouse-epics)))
    :history 'org-clubhouse-epic-history
    :action (lambda (selected)
              (let ((epic-id
@@ -663,11 +663,11 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
                         (org-make-link-string
                          (org-clubhouse-link-to-story story-id)
                          (number-to-string story-id)))
-
-      (org-set-property "clubhouse-epic"
-                        (org-make-link-string
-                         (org-clubhouse-link-to-epic epic-id)
-                         (alist-get epic-id (org-clubhouse-epics))))
+      (when epic-id
+            (org-set-property "clubhouse-epic"
+              (org-make-link-string
+              (org-clubhouse-link-to-epic epic-id)
+              (alist-get epic-id (org-clubhouse-epics)))))
 
       (org-set-property "clubhouse-project"
                         (org-make-link-string
