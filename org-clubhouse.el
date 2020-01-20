@@ -223,9 +223,11 @@ If set to nil, will never create stories with labels")
 ;;         (org-element-find-headline)))))
 
 (defun org-element-find-headline ()
-  (let ((current-elt (org-element-at-point)))
-    (when (equal 'headline (car current-elt))
-      (cadr current-elt))))
+  (save-mark-and-excursion
+    (when (not (outline-on-heading-p)) (org-back-to-heading))
+    (let ((current-elt (org-element-at-point)))
+      (when (equal 'headline (car current-elt))
+        (cadr current-elt)))))
 
 (defun org-element-extract-clubhouse-id (elt &optional property)
   (when-let* ((clubhouse-id-link (plist-get elt (or property :CLUBHOUSE-ID))))
