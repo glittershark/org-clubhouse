@@ -521,6 +521,7 @@ If set to nil, will never create stories with labels")
                (funcall cb project-id)))))
 
 (defun org-clubhouse-prompt-for-epic (cb)
+  "Prompt the user for an epic using ivy and call CB with its ID."
   (ivy-read
    "Select an epic: "
    (-map #'cdr (append '((nil . "No Epic")) (org-clubhouse-epics)))
@@ -589,12 +590,12 @@ If set to nil, will never create stories with labels")
       (goto-char elt-start)
 
       (org-set-property "clubhouse-epic-id"
-                        (org-make-link-string
+                        (org-link-make-string
                          (org-clubhouse-link-to-epic epic-id)
                          (number-to-string epic-id)))
 
       (org-set-property "clubhouse-milestone"
-                        (org-make-link-string
+                        (org-link-make-string
                          (org-clubhouse-link-to-milestone milestone-id)
                          (alist-get milestone-id (org-clubhouse-milestones)))))))
 
@@ -663,17 +664,17 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
       (goto-char elt-start)
 
       (org-set-property "clubhouse-id"
-                        (org-make-link-string
+                        (org-link-make-string
                          (org-clubhouse-link-to-story story-id)
                          (number-to-string story-id)))
       (when epic-id
-            (org-set-property "clubhouse-epic"
-              (org-make-link-string
-              (org-clubhouse-link-to-epic epic-id)
-              (alist-get epic-id (org-clubhouse-epics)))))
+        (org-set-property "clubhouse-epic"
+                          (org-link-make-string
+                           (org-clubhouse-link-to-epic epic-id)
+                           (alist-get epic-id (org-clubhouse-epics)))))
 
       (org-set-property "clubhouse-project"
-                        (org-make-link-string
+                        (org-link-make-string
                          (org-clubhouse-link-to-project project-id)
                          (alist-get project-id (org-clubhouse-projects))))
 
@@ -800,7 +801,7 @@ allows manually passing a clubhouse ID and list of org-element plists to write"
       (org-set-property "clubhouse-task-id" (format "%d" task-id))
 
       (org-set-property "clubhouse-story-id"
-                        (org-make-link-string
+                        (org-link-make-string
                          (org-clubhouse-link-to-story story-id)
                          (number-to-string story-id)))
 
@@ -960,7 +961,7 @@ which labels to set."
           (alist-get 'description task)
           (alist-get 'id task)
           (let ((story-id (alist-get 'story_id task)))
-            (org-make-link-string
+            (org-link-make-string
              (org-clubhouse-link-to-story story-id)
              story-id))))
 
@@ -984,7 +985,7 @@ which labels to set."
                              (-map (apply-partially #'alist-get 'name)))))
          (format ":%s:" (s-join ":" labels))
        "")
-     (org-make-link-string
+     (org-link-make-string
       (org-clubhouse-link-to-story story-id)
       (number-to-string story-id))
      (let ((desc (alist-get 'description story)))
@@ -1110,6 +1111,31 @@ Uses `org-clubhouse-state-alist'. Operates over stories from BEG to END"
             (org-todo todo-keyword)))))
     (message "Successfully synchronized status of %d stories from Clubhouse"
              (length elts))))
+
+(defun org-clubhouse-set-epic (&optional story-id epic-id cb)
+  "Set the epic of clubhouse story STORY-ID to EPIC-ID, then call CB.
+
+When called interactively, prompt for an epic and set the story of the clubhouse
+story at point"
+  (interactive)
+  (if (and story-id epic-id)
+      (progn
+        (org-clubhouse-update-story-internal
+         story-id :epic-id epic-id)
+        (when cb (funcall cb)))
+    (let ((story-id (org-element-clubhouse-id)))
+      (org-clubhouse-prompt-for-epic
+       (lambda (epic-id)
+         (org-clubhouse-set-epic
+          story-id epic-id
+          (lambda ()
+            (org-set-property
+             "clubhouse-epic"
+             (org-link-make-string
+              (org-clubhouse-link-to-epic epic-id)
+              (alist-get epic-id (org-clubhouse-epics))))
+            (message "Successfully set the epic on story %d to %d"
+                     story-id epic-id))))))))
 
 ;;;
 
