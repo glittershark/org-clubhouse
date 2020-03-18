@@ -868,7 +868,8 @@ the headline."
   (interactive)
 
   (let* ((elt (org-element-find-headline))
-         (title (plist-get elt :title)))
+         (title (plist-get elt :title))
+         (clubhouse-id (org-element-clubhouse-id)))
     (and
      (org-clubhouse-update-story-at-point
       clubhouse-id
