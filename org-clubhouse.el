@@ -258,6 +258,23 @@ If set to nil, will never create stories with labels")
   (org-element-extract-clubhouse-id
    (org-element-find-headline)))
 
+(defun org-clubhouse-clocked-in-story-id ()
+  "Return the clubhouse story-id of the currently clocked-in org entry, if any."
+  (save-mark-and-excursion
+    (save-current-buffer
+      (when (org-clocking-p)
+        (set-buffer (marker-buffer org-clock-marker))
+        (save-restriction
+          (when (or (< org-clock-marker (point-min))
+                    (> org-clock-marker (point-max)))
+            (widen))
+          (goto-char org-clock-marker)
+          (org-element-clubhouse-id))))))
+
+(comment
+ (org-clubhouse-clocked-in-story-id)
+ )
+
 (defun org-element-and-children-at-point ()
   (let* ((elt (org-element-find-headline))
          (contents-begin (or (plist-get elt :contents-begin)
