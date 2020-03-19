@@ -911,11 +911,16 @@ element."
                        is not set")
                        nil))))
 
-            (org-clubhouse-update-story-internal
-             clubhouse-id
-             :workflow_state_id workflow-state-id
-             :owner_ids (when update-assignee?
-                          (list (org-clubhouse-whoami))))
+            (if update-assignee?
+                (org-clubhouse-update-story-internal
+                 clubhouse-id
+                 :workflow_state_id workflow-state-id
+                 :owner_ids (if update-assignee?
+                                (list (org-clubhouse-whoami))
+                              (list)))
+              (org-clubhouse-update-story-internal
+                 clubhouse-id
+                 :workflow_state_id workflow-state-id))
             (message
              (if update-assignee?
                  "Successfully claimed story and updated clubhouse status to \"%s\""
