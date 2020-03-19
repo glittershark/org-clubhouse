@@ -50,6 +50,10 @@ Once installed, you'll need to set three global config vars:
 You can generate a new personal API token by going to the "API Tokens" tab on
 the "Settings" page in the clubhouse UI.
 
+Note that ~org-clubhouse-username~ needs to be set to your *mention name*, not
+your username, as currently there's no way to get the ID of a user given their
+username in the clubhouse API
+
 * Usage
 
 ** Reading from clubhouse
