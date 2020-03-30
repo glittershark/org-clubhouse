@@ -490,6 +490,10 @@ If set to nil, will never create stories with labels")
                        (equal org-clubhouse-username))))
        (alist-get 'id)))
 
+(defcache org-clubhouse-iterations
+  "Returns iterations as (project-id . name)"
+  (org-clubhouse-fetch-as-id-name-pairs "iterations"))
+
 (defun org-clubhouse-stories-in-project (project-id)
   "Return the stories in the given PROJECT-ID as org headlines."
   (let ((resp-json (org-clubhouse-request "GET" (format "/projects/%d/stories" project-id))))
@@ -1042,6 +1046,41 @@ which labels to set."
         cdadr
         (append nil)
         reject-archived)))
+
+(defun org-clubhouse-prompt-for-iteration (cb)
+  "Prompt for iteration and call CB with that iteration"
+  (ivy-read
+   "Select an interation: "
+   (-map #'cdr (org-clubhouse-iterations))
+   :require-match t
+   :history 'org-clubhouse-iteration-history
+   :action (lambda (selected)
+             (let ((iteration-id
+                    (find-match-in-alist selected (org-clubhouse-iterations))))
+               (funcall cb iteration-id)))))
+
+(defun org-clubhouse--get-iteration (iteration-id)
+  (-> (org-clubhouse-request "GET" (format "iterations/%d/stories" iteration-id))
+      (append nil)))
+
+(defun org-clubhouse-headlines-from-iteration (level)
+  "Create `org-mode' headlines from a clubhouse iteration.
+
+Create `org-mode' headlines from all the resulting stories at headline level LEVEL."
+  (interactive "*nLevel: ")
+  (org-clubhouse-prompt-for-iteration
+   (lambda (iteration-id) 
+     (let ((story-list (org-clubhouse--get-iteration iteration-id)))
+       (if (null story-list)
+           (message "Iteration id returned no stories: %d" iteration-id)
+         (let ((text (mapconcat (apply-partially
+                                 #'org-clubhouse--story-to-headline-text
+                                 level)
+                                (reject-archived story-list) "\n")))
+               (save-mark-and-excursion
+                 (insert text)
+                 (org-align-all-tags))
+             text))))))
 
 (defun org-clubhouse-headlines-from-query (level query)
   "Create `org-mode' headlines from a clubhouse query.
