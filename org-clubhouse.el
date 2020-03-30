@@ -491,7 +491,7 @@ If set to nil, will never create stories with labels")
        (alist-get 'id)))
 
 (defcache org-clubhouse-iterations
-  "Returns iterations as (project-id . name)"
+  "Returns iterations as (iteration-id . name)"
   (org-clubhouse-fetch-as-id-name-pairs "iterations"))
 
 (defun org-clubhouse-stories-in-project (project-id)
@@ -1069,7 +1069,7 @@ which labels to set."
 Create `org-mode' headlines from all the resulting stories at headline level LEVEL."
   (interactive "*nLevel: ")
   (org-clubhouse-prompt-for-iteration
-   (lambda (iteration-id) 
+   (lambda (iteration-id)
      (let ((story-list (org-clubhouse--get-iteration iteration-id)))
        (if (null story-list)
            (message "Iteration id returned no stories: %d" iteration-id)
