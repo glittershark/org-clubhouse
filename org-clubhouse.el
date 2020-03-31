@@ -553,9 +553,10 @@ If set to nil, will never create stories with labels")
                (funcall cb epic-id)))))
 
 (defun org-clubhouse-prompt-for-milestone (cb)
+  "Prompt the user for a milestone using ivy and call CB with its ID."
   (ivy-read
    "Select a milestone: "
-   (-map #'cdr (org-clubhouse-milestones))
+   (-map #'cdr (append '((nil . "No Milestone")) (org-clubhouse-milestones)))
    :require-match t
    :history 'org-clubhouse-milestone-history
    :action (lambda (selected)
@@ -593,7 +594,8 @@ If set to nil, will never create stories with labels")
 (cl-defun org-clubhouse-create-epic-internal
     (title &key milestone-id)
   (cl-assert (and (stringp title)
-               (integerp milestone-id)))
+                  (or (null milestone-id)
+                      (integerp milestone-id))))
   (org-clubhouse-request
    "POST"
    "epics"
@@ -606,7 +608,6 @@ If set to nil, will never create stories with labels")
   (let ((elt-start  (plist-get elt :begin))
         (epic-id    (alist-get 'id epic))
         (milestone-id (alist-get 'milestone_id epic)))
-
     (save-excursion
       (goto-char elt-start)
 
@@ -615,10 +616,11 @@ If set to nil, will never create stories with labels")
                          (org-clubhouse-link-to-epic epic-id)
                          (number-to-string epic-id)))
 
-      (org-set-property "clubhouse-milestone"
-                        (org-link-make-string
-                         (org-clubhouse-link-to-milestone milestone-id)
-                         (alist-get milestone-id (org-clubhouse-milestones)))))))
+      (when milestone-id
+        (org-set-property "clubhouse-milestone"
+                          (org-link-make-string
+                           (org-clubhouse-link-to-milestone milestone-id)
+                           (alist-get milestone-id (org-clubhouse-milestones))))))))
 
 (defun org-clubhouse-create-epic (&optional beg end)
   "Creates a clubhouse epic using selected headlines.
@@ -635,14 +637,13 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
          (elts (-remove (lambda (elt) (plist-get elt :CLUBHOUSE-EPIC-ID)) elts)))
     (org-clubhouse-prompt-for-milestone
      (lambda (milestone-id)
-       (when milestone-id
-         (dolist (elt elts)
-           (let* ((title (plist-get elt :title))
-                  (epic  (org-clubhouse-create-epic-internal
-                          title
-                          :milestone-id milestone-id)))
-             (org-clubhouse-populate-created-epic elt epic))
-               elts))))))
+       (dolist (elt elts)
+         (let* ((title (plist-get elt :title))
+                (epic  (org-clubhouse-create-epic-internal
+                        title
+                        :milestone-id milestone-id)))
+           (org-clubhouse-populate-created-epic elt epic))
+         elts)))))
 
 ;;;
 ;;; Story creation
