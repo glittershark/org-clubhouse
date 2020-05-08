@@ -174,10 +174,9 @@ If set to nil, will never create stories with labels")
 
 (defun org-clubhouse-collect-headlines (beg end)
   "Collects the headline at point or the headlines in a region. Returns a list."
-  (setq test-headlines
   (if (and beg end)
       (org-clubhouse-get-headlines-in-region beg end)
-      (list (org-element-find-headline)))))
+    (list (org-element-find-headline))))
 
 
 (defun org-clubhouse-get-headlines-in-region (beg end)
@@ -208,7 +207,7 @@ If set to nil, will never create stories with labels")
         (let ((before (point)))
           (org-forward-heading-same-level 1)
           (setq before-end (and (not (eq before (point))) (< (point) end)))))
-      headlines)))
+      (reverse headlines))))
 
 ;;;
 ;;; Org-element interaction
