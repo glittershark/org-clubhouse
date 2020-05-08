@@ -1175,30 +1175,39 @@ Uses `org-clubhouse-state-alist'. Operates over stories from BEG to END"
     (message "Successfully synchronized status of %d stories from Clubhouse"
              (length elts))))
 
-(defun org-clubhouse-set-epic (&optional story-id epic-id cb)
+(cl-defun org-clubhouse-set-epic (&optional story-id epic-id cb &key beg end)
   "Set the epic of clubhouse story STORY-ID to EPIC-ID, then call CB.
 
 When called interactively, prompt for an epic and set the story of the clubhouse
-story at point"
-  (interactive)
+stor{y,ies} at point or region"
+  (interactive
+   (when (use-region-p)
+     (list nil nil nil
+           :beg (region-beginning)
+           :end (region-end))))
   (if (and story-id epic-id)
       (progn
         (org-clubhouse-update-story-internal
          story-id :epic-id epic-id)
         (when cb (funcall cb)))
-    (let ((story-id (org-element-clubhouse-id)))
+    (let ((elts (-filter (lambda (elt) (plist-get elt :CLUBHOUSE-ID))
+                         (org-clubhouse-collect-headlines beg end))))
       (org-clubhouse-prompt-for-epic
        (lambda (epic-id)
-         (org-clubhouse-set-epic
-          story-id epic-id
-          (lambda ()
-            (org-set-property
-             "clubhouse-epic"
-             (org-link-make-string
-              (org-clubhouse-link-to-epic epic-id)
-              (alist-get epic-id (org-clubhouse-epics))))
-            (message "Successfully set the epic on story %d to %d"
-                     story-id epic-id))))))))
+         (-map
+          (lambda (elt)
+            (let ((story-id (org-element-extract-clubhouse-id elt)))
+              (org-clubhouse-set-epic
+               story-id epic-id
+               (lambda ()
+                 (org-set-property
+                  "clubhouse-epic"
+                  (org-link-make-string
+                   (org-clubhouse-link-to-epic epic-id)
+                   (alist-get epic-id (org-clubhouse-epics))))
+                 (message "Successfully set the epic on story %d to %d"
+                          story-id epic-id))))))
+         elts)))))
 
 ;;;
 
