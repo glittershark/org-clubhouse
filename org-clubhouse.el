@@ -1030,6 +1030,21 @@ which labels to set."
                     "\n")
        ""))))
 
+(defun org-clubhouse-headline-from-my-tasks (level)
+  "Prompt my active stories and create a single `org-mode' headline at LEVEL."
+  (interactive "*nLevel: \n")
+  (if org-clubhouse-username
+      (let* ((story-list (org-clubhouse--search-stories
+                          (format "owner:%s !is:done !is:archived"
+                                  org-clubhouse-username)))
+             (stories (to-id-name-pairs story-list)))
+        (org-clubhouse-headline-from-story-id level
+                                              (find-match-in-alist
+                                               (ivy-read "Select Story: "
+                                                         (-map #'cdr stories))
+                                               stories)))
+    (warn "Can't fetch my tasks if `org-clubhouse-username' is unset")))
+
 (defun org-clubhouse-headline-from-story-id (level story-id)
   "Create a single `org-mode' headline at LEVEL based on the given clubhouse STORY-ID."
   (interactive "*nLevel: \nnStory ID: ")
