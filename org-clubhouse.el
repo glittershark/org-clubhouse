@@ -630,7 +630,7 @@ All epics are added to the same milestone, as selected via a prompt.
 If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
   (interactive
    (when (use-region-p)
-     (list (region-beginning region-end))))
+     (list (region-beginning) (region-end))))
 
   (let* ((elts (org-clubhouse-collect-headlines beg end))
          (elts (-remove (lambda (elt) (plist-get elt :CLUBHOUSE-EPIC-ID)) elts)))
