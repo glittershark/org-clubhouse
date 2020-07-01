@@ -253,9 +253,16 @@ If set to nil, will never create stories with labels")
    (string-to-number (match-string 1 strn)))
  )
 
-(defun org-element-clubhouse-id ()
+(defun org-element-clubhouse-id (&optional property)
   (org-element-extract-clubhouse-id
-   (org-element-find-headline)))
+   (org-element-find-headline)
+   property))
+
+(defun org-clubhouse--element-type (elt)
+  "Return one of 'epic, 'story, or nil indicating the type of ELT."
+  (cond
+   ((plist-get elt :CLUBHOUSE-EPIC-ID) 'epic)
+   ((plist-get elt :CLUBHOUSE-ID) 'story)))
 
 (defun org-clubhouse-clocked-in-story-id ()
   "Return the clubhouse story-id of the currently clocked-in org entry, if any."
@@ -862,10 +869,20 @@ allows manually passing a clubhouse ID and list of org-element plists to write"
 (cl-defun org-clubhouse-update-story-internal
     (story-id &rest attrs)
   (cl-assert (and (integerp story-id)
-               (listp attrs)))
+                  (listp attrs)))
   (org-clubhouse-request
    "PUT"
    (format "stories/%d" story-id)
+   :data
+   (json-encode attrs)))
+
+(cl-defun org-clubhouse-update-epic-internal
+    (story-id &rest attrs)
+  (cl-assert (and (integerp story-id)
+                  (listp attrs)))
+  (org-clubhouse-request
+   "PUT"
+   (format "epics/%d" epic-id)
    :data
    (json-encode attrs)))
 
@@ -874,6 +891,13 @@ allows manually passing a clubhouse ID and list of org-element plists to write"
     (apply
      #'org-clubhouse-update-story-internal
      (cons clubhouse-id attrs))
+    t))
+
+(cl-defun org-clubhouse-update-epic-at-point (&rest attrs)
+  (when-let* ((epic-id (org-element-clubhouse-id :CLUBHOUSE-EPIC-ID)))
+    (apply
+     #'org-clubhouse-update-epic-internal
+     (cons epic-id attrs))
     t))
 
 (defun org-clubhouse-update-story-title ()
@@ -967,21 +991,35 @@ contents of a drawer inside the element called DESCRIPTION, if any."
       :description new-description)
      (message "Successfully updated story description"))))
 
-(defun org-clubhouse-update-labels ()
-  "Update the labels of the Clubhouse story linked to the current element.
+(defun org-clubhouse-update-labels (&optional beg end)
+  "Update the labels of the story or epic linked to the element at point.
+
+When called interactively with a region, operates on all elements between BEG
+and END.
 
 Will use the value of `org-clubhouse-create-stories-with-labels' to determine
 which labels to set."
-  (interactive)
-  (when-let* ((elt (org-element-find-headline))
-              (new-labels (org-clubhouse--labels-for-elt elt)))
-    (and
-     (org-clubhouse-update-story-at-point
-      :labels new-labels)
-     (message "Successfully updated story labels to :%s:"
-              (->> new-labels
-                   (-map #'cdar)
-                   (s-join ":"))))))
+  (interactive
+   (when (use-region-p)
+     (list (region-beginning) (region-end))))
+
+  (dolist (elt (org-clubhouse-collect-headlines beg end))
+    (let* ((new-labels (org-clubhouse--labels-for-elt elt))
+           (label-desc (->> new-labels (-map #'cdar) (s-join ":"))))
+      (case (org-clubhouse--element-type elt)
+        ('story
+         (and
+          (org-clubhouse-update-story-at-point
+           :labels new-labels)
+          (message "Successfully updated story labels to :%s:"
+                   label-desc)))
+        ('epic
+         (and
+          (org-clubhouse-update-epic-at-point :labels new-labels)
+          (message "Successfully updated epic labels to :%s:"
+                   label-desc)))
+        (otherwise
+         (message "Element at point is not a clubhouse epic or story!"))))))
 
 
 ;;;
