@@ -313,6 +313,11 @@ If set to nil, will never create stories with labels")
                          drawer-pos))
            (org-clubhouse-find-description-drawer)))))))
 
+(defun org-clubhouse--description-for-elt (elt)
+  (save-mark-and-excursion
+    (goto-char (plist-get elt :begin))
+    (org-clubhouse-find-description-drawer)))
+
 (defun org-clubhouse--labels-for-elt (elt)
   "Return the Clubhouse labels based on the tags of ELT and the user's config."
   (unless (eq nil org-clubhouse-create-stories-with-labels)
@@ -591,17 +596,23 @@ If set to nil, will never create stories with labels")
 ;;;
 
 (cl-defun org-clubhouse-create-epic-internal
-    (title &key milestone-id)
+    (title &key milestone-id description labels)
   (cl-assert (and (stringp title)
                   (or (null milestone-id)
-                      (integerp milestone-id))))
+                      (integerp milestone-id))
+                  (or (null description)
+                      (stringp description))
+                  (and (listp labels)
+                       (-all? #'stringp labels))))
   (org-clubhouse-request
    "POST"
    "epics"
    :data
    (json-encode
     `((name . ,title)
-      (milestone_id . ,milestone-id)))))
+      (milestone_id . ,milestone-id)
+      (description . ,(or description ""))
+      (labels . ,labels)))))
 
 (defun org-clubhouse-populate-created-epic (elt epic)
   (let ((elt-start  (plist-get elt :begin))
@@ -638,11 +649,14 @@ If the epics already have a CLUBHOUSE-EPIC-ID, they are filtered and ignored."
      (lambda (milestone-id)
        (dolist (elt elts)
          (let* ((title (plist-get elt :title))
+                (description (org-clubhouse--description-for-elt elt))
+                (labels (org-clubhouse--labels-for-elt elt))
                 (epic  (org-clubhouse-create-epic-internal
                         title
-                        :milestone-id milestone-id)))
-           (org-clubhouse-populate-created-epic elt epic))
-         elts)))))
+                        :milestone-id milestone-id
+                        :labels labels
+                        :description description)))
+           (org-clubhouse-populate-created-epic elt epic)))))))
 
 ;;;
 ;;; Story creation
@@ -733,9 +747,7 @@ If the stories already have a CLUBHOUSE-ID, they are filtered and ignored."
                       (lambda (elt)
                         (let* ((title (plist-get elt :title))
                                (description
-                                (save-mark-and-excursion
-                                  (goto-char (plist-get elt :begin))
-                                  (org-clubhouse-find-description-drawer)))
+                                (org-clubhouse--description-for-elt elt))
                                (labels (org-clubhouse--labels-for-elt elt))
                                (story (org-clubhouse-create-story-internal
                                        title
