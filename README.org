@@ -89,6 +89,10 @@ username in the clubhouse API
 - ~org-clubhouse-update-description~
   Update the status of the Clubhouse story linked to the current element with
   the contents of a drawer inside the element called DESCRIPTION, if any exists
+- ~org-clubhouse-update-labels~
+  Update the labels of the Clubhouse stories or epics linked to either the
+  element at point or all selected elements. Follows the rules specified in
+  ~org-clubhouse-create-story-with-labels~ - see "Story labels" below
 - ~org-clubhouse-claim~
   Adds the user configured in ~org-clubhouse-username~ as the owner of the
   clubhouse story associated with the headline at point
@@ -118,6 +122,17 @@ An example config:
         ("ACTIVE" . "In Progress")
         ("DONE"   . "Done")))
 #+END_SRC
+
+*** Story labels
+
+By default, org-clubhouse will ignore all tags on org headlines when creating
+stories and epics. If you want to set labels when creating or updating stories
+and epics, you can set the value of ~org-clubhouse-create-stories-with-labels~
+to either ~t~ or ~'existing~. When set to ~t~, all commands will create new
+labels in clubhouse for *all* org-mode tags, following all tag inheritance rules
+in org mode (inheriting tags from parents, and respecting ~FILETAGS~). When set
+to ~'existing~, commands will only set write tags that *already* exist as
+clubhouse labels.
 
 * Philosophy
 
