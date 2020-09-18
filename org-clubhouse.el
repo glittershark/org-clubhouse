@@ -1270,8 +1270,8 @@ stor{y,ies} at point or region"
                    (org-clubhouse-link-to-epic epic-id)
                    (alist-get epic-id (org-clubhouse-epics))))
                  (message "Successfully set the epic on story %d to %d"
-                          story-id epic-id))))))
-         elts)))))
+                          story-id epic-id)))))
+          elts))))))
 
 ;;;
 
