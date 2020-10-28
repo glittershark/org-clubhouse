@@ -237,6 +237,12 @@ If set to nil, will never create stories with labels")
            "[" (group (one-or-more digit)) "]]")
        clubhouse-id-link)
       (string-to-number (match-string 1 clubhouse-id-link)))
+     ((string-match
+       (rx "[[https://app.clubhouse.io/"
+           (one-or-more anything)
+           "/story/" (group (one-or-more digit)))
+       clubhouse-id-link)
+      (string-to-number (match-string 1 clubhouse-id-link)))
      ((string-match-p
        (rx buffer-start
            (one-or-more digit)
