@@ -19,7 +19,7 @@
 ;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 ;;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 ;;; IN THE SOFTWARE.
-;;; Package-Requires: (cl-macs dash dash-functional s subr-x ivy json)
+;;; Package-Requires: (dash s ivy json)
 
 ;;; Commentary:
 ;;; org-clubhouse provides simple, unopinionated integration between Emacs's
