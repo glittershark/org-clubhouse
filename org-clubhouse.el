@@ -19,7 +19,9 @@
 ;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 ;;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 ;;; IN THE SOFTWARE.
-;;; Package-Requires: (dash s ivy json)
+;;; Package-Requires: ((emacs "26.1") dash s ivy json (org "9.3"))
+;;; Package-Version: 0.0.1
+;;; URL: https://github.com/glitterlshark/org-clubhouse
 
 ;;; Commentary:
 ;;; org-clubhouse provides simple, unopinionated integration between Emacs's
@@ -34,7 +36,7 @@
 
 ;;; Code:
 
-(require 'cl-macs)
+(require 'cl-lib)
 (require 'dash)
 (require 's)
 (require 'org)
@@ -163,7 +165,6 @@ If set to nil, will never create stories with labels")
 
   '((foo . "foo") (bar . "bar") (ignored . "ignoreme!")))
  ;; => (:foo "foo" :something "bar")
-
  )
 
 (defun find-match-in-alist (target alist)
@@ -256,8 +257,7 @@ If set to nil, will never create stories with labels")
     (rx "[[" (one-or-more anything) "]"
         "[" (group (one-or-more digit)) "]]")
     strn)
-   (string-to-number (match-string 1 strn)))
- )
+   (string-to-number (match-string 1 strn))))
 
 (defun org-element-clubhouse-id (&optional property)
   (org-element-extract-clubhouse-id
@@ -285,6 +285,7 @@ If set to nil, will never create stories with labels")
 
 (comment
  (org-clubhouse-clocked-in-story-id)
+ ;;
  )
 
 (defun org-element-and-children-at-point ()
@@ -432,7 +433,8 @@ If set to nil, will never create stories with labels")
 
  (clear-org-clubhouse-projects-cache)
  (clear-org-clubhouse-cache)
- )
+ ;;
+)
 
 (defvar org-clubhouse-cache-clear-functions ())
 
