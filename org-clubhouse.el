@@ -36,7 +36,6 @@
 
 (require 'cl-macs)
 (require 'dash)
-(require 'dash-functional)
 (require 's)
 (require 'org)
 (require 'org-element)
