@@ -1,6 +1,6 @@
 #+TITLE:Org-Shortcut
 
-Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the [[https://shortcut.io/][Shortcut]]
+Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the [[https://shortcut.com/][Shortcut]]
 issue tracker
 
 * Installation
@@ -56,7 +56,7 @@ username in the shortcut API
 ** Reading from shortcut
 
 - ~org-shortcut-headlines-from-query~
-  Create org-mode headlines from a [[https://help.shortcut.io/hc/en-us/articles/360000046646-Searching-in-Shortcut-Story-Search][shortcut query]] at the cursor's current
+  Create org-mode headlines from a [[https://help.shortcut.com/hc/en-us/articles/360000046646-Searching-in-Shortcut-Story-Search][shortcut query]] at the cursor's current
   position, prompting for the headline indentation level and shortcut query
   text
 - ~org-shortcut-headline-from-story~
@@ -151,4 +151,5 @@ that with Shortcut.
 * Configuration
 
 Refer to the beginning of the [[https://github.com/urbint/org-shortcut/blob/master/org-shortcut.el][org-shortcut.el]] file in this repository for
+
 documentation on all supported configuration variables
