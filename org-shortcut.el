@@ -61,7 +61,7 @@ an API token, so we need to configure this for
 
 (defvar org-shortcut-team-name nil
   "Team name to use in links to Shortcut.
-ie https://app.shortcut.io/<TEAM_NAME>/stories")
+ie https://app.shortcut.com/<TEAM_NAME>/stories")
 
 (defvar org-shortcut-project-ids nil
   "Specific list of project IDs to synchronize with shortcut.
@@ -239,7 +239,7 @@ If set to nil, will never create stories with labels")
        shortcut-id-link)
       (string-to-number (match-string 1 shortcut-id-link)))
      ((string-match
-       (rx "[[https://app.shortcut.io/"
+       (rx "[[https://app.shortcut.com/"
            (one-or-more anything)
            "/story/" (group (one-or-more digit)))
        shortcut-id-link)
@@ -252,7 +252,7 @@ If set to nil, will never create stories with labels")
       (string-to-number shortcut-id-link)))))
 
 (comment
- (let ((strn "[[https://app.shortcut.io/example/story/2330][2330]]"))
+ (let ((strn "[[https://app.shortcut.com/example/story/2330][2330]]"))
    (string-match
     (rx "[[" (one-or-more anything) "]"
         "[" (group (one-or-more digit)) "]]")
@@ -348,7 +348,7 @@ If set to nil, will never create stories with labels")
 ;;; API integration
 ;;;
 
-(defvar org-shortcut-base-url* "https://api.shortcut.io/api/v3")
+(defvar org-shortcut-base-url* "https://api.shortcut.com/api/v3")
 
 (defun org-shortcut-auth-url (url &optional params)
  (concat url
@@ -404,22 +404,22 @@ If set to nil, will never create stories with labels")
   (org-shortcut-request "GET" (format "/stories/%s" shortcut-id)))
 
 (defun org-shortcut-link-to-story (story-id)
-  (format "https://app.shortcut.io/%s/story/%d"
+  (format "https://app.shortcut.com/%s/story/%d"
           org-shortcut-team-name
           story-id))
 
 (defun org-shortcut-link-to-epic (epic-id)
-  (format "https://app.shortcut.io/%s/epic/%d"
+  (format "https://app.shortcut.com/%s/epic/%d"
           org-shortcut-team-name
           epic-id))
 
 (defun org-shortcut-link-to-milestone (milestone-id)
-  (format "https://app.shortcut.io/%s/milestone/%d"
+  (format "https://app.shortcut.com/%s/milestone/%d"
           org-shortcut-team-name
           milestone-id))
 
 (defun org-shortcut-link-to-project (project-id)
-  (format "https://app.shortcut.io/%s/project/%d"
+  (format "https://app.shortcut.com/%s/project/%d"
           org-shortcut-team-name
           project-id))
 
