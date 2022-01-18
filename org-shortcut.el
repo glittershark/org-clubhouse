@@ -348,13 +348,7 @@ If set to nil, will never create stories with labels")
 ;;; API integration
 ;;;
 
-(defvar org-shortcut-base-url* "https://api.shortcut.com/api/v3")
-
-(defun org-shortcut-auth-url (url &optional params)
- (concat url
-         "?"
-         (url-build-query-string
-          (cons `("token" ,org-shortcut-auth-token) params))))
+(defvar org-shortcut-base-url* "https://api.app.shortcut.com/api/v3")
 
 (defun org-shortcut-baseify-url (url)
  (if (s-starts-with? org-shortcut-base-url* url) url
@@ -371,8 +365,7 @@ If set to nil, will never create stories with labels")
         (buf))
 
    (setq url (-> url
-                 org-shortcut-baseify-url
-                 (org-shortcut-auth-url params)))
+                 org-shortcut-baseify-url))
 
    (setq buf (url-retrieve-synchronously url))
 
