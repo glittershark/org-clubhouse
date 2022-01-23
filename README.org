@@ -3,8 +3,8 @@
 Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the
 [[https://shortcut.com][Shortcut]] issue tracker
 
-This work originated from glittershark/org-shortcut and adjusted to
-new name of Shortcut - Shortcut.
+This work originated from glittershark/org-clubhouse and adjusted to
+new name of Clubhouse - Shortcut.
 
 * Installation
 ** [[https://github.com/quelpa/quelpa][Quelpa]]
