@@ -1,157 +1,171 @@
-#+TITLE:Org-Clubhouse
+#+TITLE: Org-Shortcut
 
-Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the [[https://clubhouse.io/][Clubhouse]]
-issue tracker
+Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the
+[[https://shortcut.com][Shortcut]] issue tracker
 
-(This used to be at urbint/org-clubhouse, by the way, but moved here as it's
-more of a personal project than a company one)
+This work originated from glittershark/org-shortcut and adjusted to
+new name of Shortcut - Shortcut.
 
 * Installation
-
 ** [[https://github.com/quelpa/quelpa][Quelpa]]
 
 #+BEGIN_SRC emacs-lisp
-(quelpa '(org-clubhouse
+(quelpa '(org-shortcut
           :fetcher github
-          :repo "glittershark/org-clubhouse"))
+          :repo "velppa/org-shortcut"))
 #+END_SRC
 
 ** [[https://github.com/hlissner/doom-emacs/][DOOM Emacs]]
 
 #+BEGIN_SRC emacs-lisp
 ;; in packages.el
-(package! org-clubhouse
+(package! org-shortcut
   :recipe (:fetcher github
-           :repo "glittershark/org-clubhouse"
+           :repo "velppa/org-shortcut"
            :files ("*")))
 
 ;; in config.el
-(def-package! org-clubhouse)
+(def-package! org-shortcut)
 #+END_SRC
 
 ** [[http://spacemacs.org/][Spacemacs]]
 #+BEGIN_SRC emacs-lisp
 ;; in .spacemacs (SPC+fed)
    dotspacemacs-additional-packages
-    '((org-clubhouse :location (recipe :fetcher github :repo "glittershark/org-clubhouse")))
+    '((org-shortcut :location (recipe :fetcher github :repo "velppa/org-shortcut")))
 #+END_SRC
 
 
 * Setup
-
 Once installed, you'll need to set three global config vars:
 
 #+BEGIN_SRC emacs-lisp
-(setq org-clubhouse-auth-token "<your-token>"
-      org-clubhouse-team-name "<your-team-name>"
-      org-clubhouse-username "<your-username>")
+(setq org-shortcut-auth-token "<your-token>"
+      org-shortcut-team-name "<your-team-name>"
+      org-shortcut-username "<your-username>")
 #+END_SRC
 
-You can generate a new personal API token by going to the "API Tokens" tab on
-the "Settings" page in the clubhouse UI.
+You can generate a new personal API token by going to the "API Tokens"
+tab on the "Settings" page in the Shortcut UI.
 
-Note that ~org-clubhouse-username~ needs to be set to your *mention name*, not
-your username, as currently there's no way to get the ID of a user given their
-username in the clubhouse API
+Note that ~org-shortcut-username~ needs to be set to your *mention name*,
+not your username, as currently there's no way to get the ID of a user
+given their username in the Shortcut API
 
 * Usage
+** Reading from Shortcut
+- ~org-shortcut-headlines-from-query~
 
-** Reading from clubhouse
+  Create org-mode headlines from a [[https://help.clubhouse.io/hc/en-us/articles/360000046646-Searching-in-Clubhouse-Story-Search][Shortcut query]] at the cursor's
+  current position, prompting for the headline indentation level and
+  Shortcut query text
+- ~org-shortcut-headline-from-story~
 
-- ~org-clubhouse-headlines-from-query~
-  Create org-mode headlines from a [[https://help.clubhouse.io/hc/en-us/articles/360000046646-Searching-in-Clubhouse-Story-Search][clubhouse query]] at the cursor's current
-  position, prompting for the headline indentation level and clubhouse query
-  text
-- ~org-clubhouse-headline-from-story~
-  Prompts for headline indentation level and the title of a story (which will
-  complete using the titles of all stories in your Clubhouse workspace) and
-  creates an org-mode headline from that story
-- ~org-clubhouse-headline-from-story-id~
-  Creates an org-mode headline directly from the ID of a clubhouse story
+  Prompts for headline indentation level and the title of a story
+  (which will complete using the titles of all stories in your
+  Shortcut workspace) and creates an org-mode headline from that story
 
-** Writing to clubhouse
+- ~org-shortcut-headline-from-story-id~
 
-- ~org-clubhouse-create-story~
-  Creates a new Clubhouse story from the current headline, or if a region of
-  headlines is selected bulk-creates stories with all those headlines
-- ~org-clubhouse-create-epic~
-  Creates a new Clubhouse epic from the current headline, or if a region of
-  headlines is selected bulk-creates epics with all those headlines
-- ~org-clubhouse-create-story-with-task-list~
-  Creates a Clubhouse story from the current headline, making all direct
-  children of the headline into tasks in the task list of the story
-- ~org-clubhouse-push-task-list~
-  Writes each child element of the current clubhouse element as a task list
-  item of the associated clubhouse ID.
-- ~org-clubhouse-update-story-title~
-  Updates the title of the Clubhouse story linked to the current headline with
-  the text of the headline
-- ~org-clubhouse-update-description~
-  Update the status of the Clubhouse story linked to the current element with
-  the contents of a drawer inside the element called DESCRIPTION, if any exists
-- ~org-clubhouse-update-labels~
-  Update the labels of the Clubhouse stories or epics linked to either the
-  element at point or all selected elements. Follows the rules specified in
-  ~org-clubhouse-create-story-with-labels~ - see "Story labels" below
-- ~org-clubhouse-claim~
-  Adds the user configured in ~org-clubhouse-username~ as the owner of the
-  clubhouse story associated with the headline at point
+  Creates an org-mode headline directly from the ID of a Shortcut
+  story
 
-*** Automatically updating Clubhouse story statuses
+** Writing to Shortcut
+- ~org-shortcut-create-story~
 
-Org-clubhouse can be configured to update the status of stories as you update
-their todo-keyword in org-mode. To opt-into this behavior, set the
-~org-clubhouse-mode~ minor-mode:
+  Creates a new Shortcut story from the current headline, or if a
+  region of headlines is selected bulk-creates stories with all those
+  headlines
+- ~org-shortcut-create-epic~
+
+  Creates a new Shortcut epic from the current headline, or if a
+  region of headlines is selected bulk-creates epics with all those
+  headlines
+- ~org-shortcut-create-story-with-task-list~
+
+  Creates a Shortcut story from the current headline, making all
+  direct children of the headline into tasks in the task list of the
+  story
+- ~org-shortcut-push-task-list~
+
+  Writes each child element of the current Shortcut element as a task
+  list item of the associated Shortcut ID.
+- ~org-shortcut-update-story-title~
+
+  Updates the title of the Shortcut story linked to the current
+  headline with the text of the headline
+- ~org-shortcut-update-description~
+
+  Update the status of the Shortcut story linked to the current
+  element with the contents of a drawer inside the element called
+  DESCRIPTION, if any exists
+- ~org-shortcut-update-labels~
+
+  Update the labels of the Shortcut stories or epics linked to either
+  the element at point or all selected elements. Follows the rules
+  specified in ~org-shortcut-create-story-with-labels~ - see "Story
+  labels" below
+
+- ~org-shortcut-claim~
+
+  Adds the user configured in ~org-shortcut-username~ as the owner of
+  the Shortcut story associated with the headline at point
+
+*** Automatically updating Shortcut story statuses
+Org-shortcut can be configured to update the status of stories as you
+update their todo-keyword in org-mode. To opt-into this behavior, set
+the ~org-shortcut-mode~ minor-mode:
 
 #+BEGIN_SRC emacs-lisp
-(add-hook 'org-mode-hook #'org-clubhouse-mode nil nil)
+(add-hook 'org-mode-hook #'org-shortcut-mode nil nil)
 #+END_SRC
 
 The mapping from org-mode todo-keywords is configured via the
-~org-clubhouse-state-alist~ variable, which should be an [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Association-Lists.html][alist]] mapping (string)
-[[https://orgmode.org/manual/Workflow-states.html][org-mode todo-keywords]] to the (string) names of their corresponding workflow
-state. You can have todo-keywords that don't map to a workflow state (I use this
-in my workflow extensively) and org-clubhouse will just preserve the previous
-state of the story when moving to that state.
+~org-shortcut-state-alist~ variable, which should be an [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Association-Lists.html][alist]] mapping
+(string) [[https://orgmode.org/manual/Workflow-states.html][org-mode todo-keywords]] to the (string) names of their
+corresponding workflow state. You can have todo-keywords that don't
+map to a workflow state (I use this in my workflow extensively) and
+org-shortcut will just preserve the previous state of the story when
+moving to that state.
 
 An example config:
 
 #+BEGIN_SRC emacs-lisp
-(setq org-clubhouse-state-alist
+(setq org-shorcut-state-alist
       '(("TODO"   . "To Do")
         ("ACTIVE" . "In Progress")
         ("DONE"   . "Done")))
 #+END_SRC
 
 *** Story labels
-
-By default, org-clubhouse will ignore all tags on org headlines when creating
-stories and epics. If you want to set labels when creating or updating stories
-and epics, you can set the value of ~org-clubhouse-create-stories-with-labels~
-to either ~t~ or ~'existing~. When set to ~t~, all commands will create new
-labels in clubhouse for *all* org-mode tags, following all tag inheritance rules
-in org mode (inheriting tags from parents, and respecting ~FILETAGS~). When set
-to ~'existing~, commands will only set write tags that *already* exist as
-clubhouse labels.
+By default, org-shortcut will ignore all tags on org headlines when
+creating stories and epics. If you want to set labels when creating or
+updating stories and epics, you can set the value of
+~org-shortcut-create-stories-with-labels~ to either ~t~ or ~'existing~. When
+set to ~t~, all commands will create new labels in Shortcut for *all*
+org-mode tags, following all tag inheritance rules in org mode
+(inheriting tags from parents, and respecting ~FILETAGS~). When set to
+~'existing~, commands will only set write tags that *already* exist as
+Shortcut labels.
 
 * Philosophy
-
-I use org-mode every single day to manage tasks, notes, literate programming,
-etc. Part of what that means for me is that I already have a system for the
-structure of my .org files, and I don't want to sacrifice that system for any
-external tool. Updating statuses, ~org-clubhouse-create-story~, and
-~org-clubhouse-headline-from-story~ are my bread and butter for that reason -
-rather than having some sort of bidirectional sync that pulls down full lists of
-all the stories in Clubhouse (or whatever issue tracker / project management
-tool I'm using at the time). I can be in a mode where I'm taking meeting notes,
-think of something that I need to do, make it a TODO headline, and make that
-TODO headline a clubhouse story. That's the same reason for the DESCRIPTION
-drawers rather than just sending the entire contents of a headline to
-Clubhouse - I almost always want to write things like personal notes, literate
-code, etc inside of the tasks I'm working on, and don't always want to share
-that with Clubhouse.
+I use org-mode every single day to manage tasks, notes, literate
+programming, etc. Part of what that means for me is that I already
+have a system for the structure of my .org files, and I don't want to
+sacrifice that system for any external tool. Updating statuses,
+~org-shortcut-create-story~, and ~org-shortcut-headline-from-story~ are my
+bread and butter for that reason - rather than having some sort of
+bidirectional sync that pulls down full lists of all the stories in
+Shortcut (or whatever issue tracker / project management tool I'm
+using at the time). I can be in a mode where I'm taking meeting notes,
+think of something that I need to do, make it a TODO headline, and
+make that TODO headline a Shortcut story. That's the same reason for
+the DESCRIPTION drawers rather than just sending the entire contents
+of a headline to Shortcut - I almost always want to write things like
+personal notes, literate code, etc inside of the tasks I'm working on,
+and don't always want to share that with Shortcut.
 
 * Configuration
 
-Refer to the beginning of the [[https://github.com/urbint/org-clubhouse/blob/master/org-clubhouse.el][org-clubhouse.el]] file in this repository for
-documentation on all supported configuration variables
+Refer to the beginning of the [[https://github.com/urbint/org-clubhouse/blob/master/org-clubhouse.el][org-shortcut.el]] file in this repository
+for documentation on all supported configuration variables.
