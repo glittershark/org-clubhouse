@@ -3,9 +3,6 @@
 Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the [[https://clubhouse.io/][Clubhouse]]
 issue tracker
 
-(This used to be at urbint/org-clubhouse, by the way, but moved here as it's
-more of a personal project than a company one)
-
 * Installation
 
 ** [[https://github.com/quelpa/quelpa][Quelpa]]
