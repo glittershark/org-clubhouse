@@ -61,7 +61,7 @@ an API token, so we need to configure this for
 
 (defvar org-clubhouse-team-name nil
   "Team name to use in links to Clubhouse.
-ie https://app.clubhouse.io/<TEAM_NAME>/stories")
+ie https://app.shortcut.com/<TEAM_NAME>/stories")
 
 (defvar org-clubhouse-project-ids nil
   "Specific list of project IDs to synchronize with clubhouse.
@@ -239,7 +239,7 @@ If set to nil, will never create stories with labels")
        clubhouse-id-link)
       (string-to-number (match-string 1 clubhouse-id-link)))
      ((string-match
-       (rx "[[https://app.clubhouse.io/"
+       (rx "[[https://app.shortcut.com/"
            (one-or-more anything)
            "/story/" (group (one-or-more digit)))
        clubhouse-id-link)
@@ -252,7 +252,7 @@ If set to nil, will never create stories with labels")
       (string-to-number clubhouse-id-link)))))
 
 (comment
- (let ((strn "[[https://app.clubhouse.io/example/story/2330][2330]]"))
+ (let ((strn "[[https://app.shortcut.com/example/story/2330][2330]]"))
    (string-match
     (rx "[[" (one-or-more anything) "]"
         "[" (group (one-or-more digit)) "]]")
@@ -348,7 +348,7 @@ If set to nil, will never create stories with labels")
 ;;; API integration
 ;;;
 
-(defvar org-clubhouse-base-url* "https://api.clubhouse.io/api/v3")
+(defvar org-clubhouse-base-url* "https://api.app.shortcut.com/api/v3")
 
 (defun org-clubhouse-auth-url (url &optional params)
  (concat url
@@ -404,22 +404,22 @@ If set to nil, will never create stories with labels")
   (org-clubhouse-request "GET" (format "/stories/%s" clubhouse-id)))
 
 (defun org-clubhouse-link-to-story (story-id)
-  (format "https://app.clubhouse.io/%s/story/%d"
+  (format "https://app.shortcut.com/%s/story/%d"
           org-clubhouse-team-name
           story-id))
 
 (defun org-clubhouse-link-to-epic (epic-id)
-  (format "https://app.clubhouse.io/%s/epic/%d"
+  (format "https://app.shortcut.com/%s/epic/%d"
           org-clubhouse-team-name
           epic-id))
 
 (defun org-clubhouse-link-to-milestone (milestone-id)
-  (format "https://app.clubhouse.io/%s/milestone/%d"
+  (format "https://app.shortcut.com/%s/milestone/%d"
           org-clubhouse-team-name
           milestone-id))
 
 (defun org-clubhouse-link-to-project (project-id)
-  (format "https://app.clubhouse.io/%s/project/%d"
+  (format "https://app.shortcut.com/%s/project/%d"
           org-clubhouse-team-name
           project-id))
 
