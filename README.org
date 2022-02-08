@@ -1,6 +1,6 @@
 #+TITLE:Org-Clubhouse
 
-Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the [[https://clubhouse.io/][Clubhouse]]
+Simple, unopinionated integration between Emacs's [[https://orgmode.org/][org-mode]] and the [[https://shortcut.com/][Clubhouse]]
 issue tracker
 
 (This used to be at urbint/org-clubhouse, by the way, but moved here as it's
@@ -59,7 +59,7 @@ username in the clubhouse API
 ** Reading from clubhouse
 
 - ~org-clubhouse-headlines-from-query~
-  Create org-mode headlines from a [[https://help.clubhouse.io/hc/en-us/articles/360000046646-Searching-in-Clubhouse-Story-Search][clubhouse query]] at the cursor's current
+  Create org-mode headlines from a [[https://help.shortcut.com/hc/en-us/articles/360000046646-Searching-in-Clubhouse-Story-Search][clubhouse query]] at the cursor's current
   position, prompting for the headline indentation level and clubhouse query
   text
 - ~org-clubhouse-headline-from-story~
