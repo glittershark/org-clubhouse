@@ -18,9 +18,8 @@ issue tracker
 #+BEGIN_SRC emacs-lisp
 ;; in packages.el
 (package! org-shortcut
-  :recipe (:fetcher github
-           :repo "glittershark/org-shortcut"
-           :files ("*")))
+  :recipe (:hohst github
+           :repo "glittershark/org-shortcut"))
 
 ;; in config.el
 (def-package! org-shortcut)
