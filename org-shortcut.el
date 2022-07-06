@@ -360,8 +360,8 @@ If set to nil, will never create stories with labels")
  (message "%s %s %s" method url (prin1-to-string data))
  (let* ((url-request-method method)
         (url-request-extra-headers
-         '(("Content-Type" . "application/json")
-           ("Shortcut-Token" . org-shortcut-auth-token)))
+         `(("Content-Type" . "application/json")
+           ("Shortcut-Token" . ,org-shortcut-auth-token)))
         (url-request-data data)
         (buf))
 
