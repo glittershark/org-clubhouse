@@ -18,11 +18,11 @@ issue tracker
 #+BEGIN_SRC emacs-lisp
 ;; in packages.el
 (package! org-shortcut
-  :recipe (:hohst github
-           :repo "glittershark/org-shortcut"))
+  :recipe (:host github
+           :repo "glittershark/org-clubhouse"))
 
 ;; in config.el
-(def-package! org-shortcut)
+(use-package! org-shortcut)
 #+END_SRC
 
 ** [[http://spacemacs.org/][Spacemacs]]
